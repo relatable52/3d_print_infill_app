@@ -1,6 +1,6 @@
 import dash
-from components.main_layout import serve_app_layout
-from callbacks import register_callbacks
+from src.components.main_layout import serve_app_layout
+from src.callbacks import register_callbacks
 
 # Initialize the Dash app without external styling libraries
 app = dash.Dash(__name__, suppress_callback_exceptions=True)

@@ -111,8 +111,10 @@ Build the first version of loop discovery that returns a catalog of valid loops 
   - winding calculation
   - physical edge reconstruction
 - define one canonical loop record shape
+- enrich the loop record with UI-ready display fields computed in the backend
 - filter out loops with winding `(0, 0)`
 - assign each remaining loop a stable display ID for the UI
+- precompute a readable path text from the ordered physical edges
 
 ### Small checks
 
@@ -121,12 +123,16 @@ Build the first version of loop discovery that returns a catalog of valid loops 
   - ordered edges
   - winding
   - a stable ID
+- each discovered loop also includes display-ready fields such as:
+  - edge count
+  - node sequence or equivalent path display data
+  - path text for the loop list
 - zero-winding loops are excluded from the loop catalog
 - duplicate loops are reduced enough that the user is not flooded with obvious repeats
 
 ### Deliverable
 
-A backend function that takes a unit-cell graph and returns a list of valid printable loops.
+A backend function that takes a unit-cell graph and returns a list of valid printable loops with frontend-friendly display metadata.
 
 ## Milestone 5: Define the layer loop-selection model
 
@@ -164,22 +170,30 @@ Expose the loop catalog in Step 2 and let the user build one layer interactively
 ### Tasks
 
 - update the Step 2 UI in `src/components/`
-- show a discovered loop list after DXF parsing
-- let the user toggle loops into or out of the current layer
-- show loop metadata in a simple readable form
-- show compatibility warnings immediately when a selection is invalid
+- render Step 2 as a split layout:
+  - top preview area
+  - bottom loop catalog list
+- show the original physical unit-cell graph with node labels in the top-left panel
+- show the currently selected loop preview in the top-right panel
+- show a discovered loop list after DXF parsing in the bottom panel
+- use the backend-precomputed loop display fields directly in the list
+- start with simple loop inspection and selection behavior before full layer composition controls
+- make it easy to click a loop in the list and update the top-right preview
+- defer more complex "add to layer" behavior until the catalog and preview feel correct
 
 ### Small checks
 
 - Step 2 becomes available after a successful DXF upload
 - the app can display discovered loops without crashing
-- selecting and deselecting loops updates the state correctly
-- invalid edge-sharing combinations are clearly reported
-- valid combinations stay selectable
+- the top-left graph keeps node labels visible
+- clicking a loop row updates the top-right preview to the correct loop
+- the loop list shows readable path text without frontend parsing logic
+- the selected loop state updates correctly
+- the layout remains readable with multiple discovered loops
 
 ### Deliverable
 
-A usable loop-selection screen for designing one layer.
+A usable Step 2 loop catalog screen with top preview panels and a backend-driven loop list.
 
 ## Milestone 7: Preview the selected unit-cell layer
 

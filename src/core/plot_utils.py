@@ -31,8 +31,9 @@ def _create_base_figure(
     graph: nx.Graph,
     title: str,
     traces: list,
+    bounds: tuple[float, float, float, float] | None = None,
 ) -> go.Figure:
-    min_x, max_x, min_y, max_y = _get_graph_bounds(graph)
+    min_x, max_x, min_y, max_y = bounds or _get_graph_bounds(graph)
     boundary_trace = _create_boundary_trace(min_x, max_x, min_y, max_y)
 
     fig = go.Figure(
@@ -125,7 +126,66 @@ def create_dxf_preview_figure(graph: nx.Graph) -> go.Figure:
     )
 
 
-def create_periodic_multigraph_figure(graph: nx.MultiGraph) -> go.Figure:
+def create_labeled_physical_graph_figure(graph: nx.Graph, title: str = "Physical Graph") -> go.Figure:
+    """Create a physical graph view with always-visible node labels."""
+    if graph is None or len(graph.nodes) == 0:
+        return go.Figure()
+
+    edge_x = []
+    edge_y = []
+    for u, v in graph.edges():
+        x0, y0 = graph.nodes[u]["pos"]
+        x1, y1 = graph.nodes[v]["pos"]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_trace = go.Scatter(
+        x=edge_x,
+        y=edge_y,
+        line=dict(width=2, color="#94a3b8"),
+        hoverinfo="none",
+        mode="lines",
+    )
+
+    node_x = []
+    node_y = []
+    node_hover_text = []
+    node_labels = []
+    for node in graph.nodes():
+        x, y = graph.nodes[node]["pos"]
+        node_x.append(x)
+        node_y.append(y)
+        node_labels.append(str(node))
+        node_hover_text.append(f"Node {node}<br>pos=({x:.3f}, {y:.3f})")
+
+    node_trace = go.Scatter(
+        x=node_x,
+        y=node_y,
+        text=node_labels,
+        hovertext=node_hover_text,
+        mode="markers+text",
+        hoverinfo="text",
+        textposition="top center",
+        marker=dict(
+            showscale=False,
+            color="#dc2626",
+            size=10,
+            line=dict(width=2, color="#0f172a"),
+        ),
+    )
+
+    return _create_base_figure(
+        graph,
+        title=title,
+        traces=[edge_trace, node_trace],
+    )
+
+
+def create_periodic_multigraph_figure(
+    graph: nx.MultiGraph,
+    width: float | None = None,
+    height: float | None = None,
+) -> go.Figure:
     """Create an abstract topology view of the periodic multigraph."""
     if graph is None or len(graph.nodes) == 0:
         return go.Figure()
@@ -215,8 +275,64 @@ def create_periodic_multigraph_figure(graph: nx.MultiGraph) -> go.Figure:
         ),
     )
 
+    bounds = None
+    if width is not None and height is not None:
+        bounds = (0.0, width, 0.0, height)
+
     return _create_base_figure(
         graph,
         title="Periodic Multigraph Preview",
         traces=[*edge_traces, node_trace],
+        bounds=bounds,
     )
+
+
+def create_loop_preview_figure(
+    original_graph: nx.Graph,
+    physical_edges: list[tuple[int, int]] | tuple[tuple[int, int], ...],
+    loop_id: str | None = None,
+) -> go.Figure:
+    """Create a highlighted loop preview on top of the physical graph."""
+    if original_graph is None or len(original_graph.nodes) == 0:
+        return go.Figure()
+
+    base_fig = create_labeled_physical_graph_figure(
+        original_graph,
+        title=f"Loop Preview{f' - {loop_id}' if loop_id else ''}",
+    )
+
+    edge_x = []
+    edge_y = []
+    for start, end in physical_edges:
+        x0, y0 = original_graph.nodes[start]["pos"]
+        x1, y1 = original_graph.nodes[end]["pos"]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+        base_fig.add_annotation(
+            x=x1,
+            y=y1,
+            ax=x0,
+            ay=y0,
+            xref="x",
+            yref="y",
+            axref="x",
+            ayref="y",
+            showarrow=True,
+            arrowhead=3,
+            arrowsize=1.2,
+            arrowwidth=2,
+            arrowcolor="#2563eb",
+            opacity=0.95,
+        )
+
+    highlighted_trace = go.Scatter(
+        x=edge_x,
+        y=edge_y,
+        line=dict(width=4, color="#2563eb"),
+        hoverinfo="none",
+        mode="lines",
+    )
+
+    base_fig.add_trace(highlighted_trace)
+    return base_fig

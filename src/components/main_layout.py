@@ -1,6 +1,7 @@
 from dash import html, dcc
 
-from components.tab_1 import TAB_1
+from src.components.tab_1 import TAB_1
+from src.components.tab_2 import TAB_2
 
 def create_upload_section():
     """Creates a basic drag-and-drop upload zone."""
@@ -44,18 +45,12 @@ def create_processing_tabs():
             ),
             
             # STEP 2: LOOP DISCOVERY
-            dcc.Tab(label="2. Loop Discovery", value="step-2", disabled=True, className="slicer-tab", children=[
-                html.Div([
-                    html.H4("Loop Catalog"),
-                    html.P("Discover valid non-zero-winding loops and choose which ones belong to the active layer."),
-                    html.Div("Loop discovery, metadata, and layer selection controls will go here.", className="placeholder-text"),
-                    
-                    html.Button("Proceed to Grid Tiling ➔", id="btn-next-step-2", className="btn-next")
-                ], className="tab-content")
+            dcc.Tab(label="2. Loop Discovery", value="step-2", disabled=True, className="slicer-tab", id="tab-step-2", children=[
+                TAB_2
             ]),
             
             # STEP 3: TILING & STITCHING
-            dcc.Tab(label="3. Layer Tiling", value="step-3", disabled=True, className="slicer-tab", children=[
+            dcc.Tab(label="3. Layer Tiling", value="step-3", disabled=True, className="slicer-tab", id="tab-step-3", children=[
                 html.Div([
                     html.H4("Layer Tiling Preview"),
                     html.Label("Rows: "),
@@ -71,7 +66,7 @@ def create_processing_tabs():
             ]),
             
             # STEP 4: G-CODE GENERATION
-            dcc.Tab(label="4. Export G-Code", value="step-4", disabled=True, className="slicer-tab", children=[
+            dcc.Tab(label="4. Export G-Code", value="step-4", disabled=True, className="slicer-tab", id="tab-step-4", children=[
                 html.Div([
                     html.H4("Print Settings & Export"),
                     html.P("Configure nozzle temperature, extrusion rate, and speed."),

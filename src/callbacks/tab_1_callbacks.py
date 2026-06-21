@@ -3,9 +3,12 @@ import base64
 from dash import Input, Output, State, dash, html, dcc
 import networkx as nx
 
-from core.dxf_parser import parse_dxf_to_graph
-from core.periodic_graph import create_periodic_multigraph
-from core.plot_utils import create_dxf_preview_figure, create_periodic_multigraph_figure
+from src.core.dxf_parser import parse_dxf_to_graph
+from src.core.periodic_graph import create_periodic_multigraph
+from src.core.plot_utils import (
+    create_dxf_preview_figure,
+    create_periodic_multigraph_figure,
+)
 
 def register_upload_callbacks(app):
     """
@@ -65,7 +68,7 @@ def register_upload_callbacks(app):
 
             dxf_fig = create_dxf_preview_figure(graph)
             periodic_graph, _ = create_periodic_multigraph(graph, width, height)
-            periodic_fig = create_periodic_multigraph_figure(periodic_graph)
+            periodic_fig = create_periodic_multigraph_figure(periodic_graph, width, height)
 
             config = {
                 'responsive': True,
@@ -93,23 +96,15 @@ def register_upload_callbacks(app):
 def register_next_step_callbacks(app):
     @app.callback(
         Output('processing-tabs', 'value'),
-        Output('processing-tabs', 'children'),
+        Output('tab-step-2', 'disabled'),
         Input('btn-next-step-1', 'n_clicks'),
         State('processing-tabs', 'value'),
     )
     def go_to_next_step(n_clicks, current_tab):
         if n_clicks is None:
             return current_tab, dash.no_update
-        
-        # Enable Step 2 tab and switch to it
-        new_tabs = []
-        for tab in app.layout['processing-tabs'].children:
-            if tab.props['value'] == 'step-2':
-                new_tabs.append(tab.copy(disabled=False))
-            else:
-                new_tabs.append(tab)
-        
-        return 'step-2', new_tabs
+
+        return 'step-2', False
 
     
 def register_tab_1_callbacks(app):

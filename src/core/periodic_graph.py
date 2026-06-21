@@ -1,6 +1,18 @@
 import networkx as nx
 
 
+def _get_leftmost_uppermost_node_id(original_graph: nx.Graph, node_ids) -> int:
+    """Pick the representative node using leftmost-first, then uppermost tie-break."""
+    return min(
+        node_ids,
+        key=lambda node_id: (
+            original_graph.nodes[node_id]["pos"][0],
+            -original_graph.nodes[node_id]["pos"][1],
+            node_id,
+        ),
+    )
+
+
 def create_periodic_multigraph(
     original_graph: nx.Graph,
     width: float,
@@ -45,7 +57,7 @@ def create_periodic_multigraph(
         for old_id in sorted_ids:
             mapping[old_id] = periodic_node_id
 
-        representative_id = sorted_ids[0]
+        representative_id = _get_leftmost_uppermost_node_id(original_graph, sorted_ids)
         periodic_graph.add_node(
             periodic_node_id,
             pos=original_graph.nodes[representative_id]["pos"],
