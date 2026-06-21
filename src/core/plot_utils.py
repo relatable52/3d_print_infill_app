@@ -1,6 +1,25 @@
 import plotly.graph_objects as go
 import networkx as nx
 
+
+def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+    hex_color = hex_color.lstrip("#")
+    return tuple(int(hex_color[index:index + 2], 16) for index in (0, 2, 4))
+
+
+def _rgb_to_hex(rgb_color: tuple[int, int, int]) -> str:
+    return "#{:02x}{:02x}{:02x}".format(*rgb_color)
+
+
+def _interpolate_hex_color(start_hex: str, end_hex: str, t: float) -> str:
+    start_rgb = _hex_to_rgb(start_hex)
+    end_rgb = _hex_to_rgb(end_hex)
+    interpolated = tuple(
+        round(start_channel + (end_channel - start_channel) * t)
+        for start_channel, end_channel in zip(start_rgb, end_rgb)
+    )
+    return _rgb_to_hex(interpolated)
+
 def _get_graph_bounds(graph: nx.Graph) -> tuple[float, float, float, float]:
     all_x = []
     all_y = []
@@ -336,3 +355,155 @@ def create_loop_preview_figure(
 
     base_fig.add_trace(highlighted_trace)
     return base_fig
+
+
+def create_layer_graph_preview_figure(
+    original_graph: nx.Graph,
+    layer_graph: nx.Graph,
+    layer_name: str | None = None,
+) -> go.Figure:
+    """Create a merged layer preview on top of the original unit-cell graph."""
+    if original_graph is None or len(original_graph.nodes) == 0:
+        return go.Figure()
+
+    title = "Active Layer Preview"
+    if layer_name:
+        title = f"{title} - {layer_name}"
+
+    base_fig = create_labeled_physical_graph_figure(original_graph, title=title)
+
+    if layer_graph is None or len(layer_graph.edges) == 0:
+        base_fig.add_annotation(
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            text="No loops added to this layer yet.",
+            showarrow=False,
+            font=dict(size=14, color="#64748b"),
+            bgcolor="rgba(255,255,255,0.85)",
+        )
+        return base_fig
+
+    edge_x = []
+    edge_y = []
+    for start, end in layer_graph.edges():
+        x0, y0 = original_graph.nodes[start]["pos"]
+        x1, y1 = original_graph.nodes[end]["pos"]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    highlighted_trace = go.Scatter(
+        x=edge_x,
+        y=edge_y,
+        line=dict(width=5, color="#0f766e"),
+        hoverinfo="none",
+        mode="lines",
+        name="Active Layer",
+    )
+    base_fig.add_trace(highlighted_trace)
+    return base_fig
+
+
+def create_stacked_layer_3d_figure(
+    layers: list[dict] | None,
+    active_layer_id: str | None = None,
+    z_spacing: float = 1.0,
+) -> go.Figure:
+    """Create a simple stacked 3D line preview for all non-empty layers."""
+    fig = go.Figure()
+
+    if not layers:
+        fig.update_layout(
+            title="Stacked Layer Preview",
+            annotations=[
+                dict(
+                    text="No layers available yet.",
+                    x=0.5,
+                    y=0.5,
+                    xref="paper",
+                    yref="paper",
+                    showarrow=False,
+                    font=dict(size=14, color="#64748b"),
+                )
+            ],
+            margin=dict(l=0, r=0, b=0, t=40),
+        )
+        return fig
+
+    has_visible_trace = False
+    layer_count = len(layers)
+
+    for index, layer in enumerate(layers):
+        layer_graph_data = layer.get("layer_graph")
+        if not layer_graph_data:
+            continue
+
+        layer_graph = nx.node_link_graph(layer_graph_data)
+        if len(layer_graph.edges) == 0:
+            continue
+
+        has_visible_trace = True
+        z_level = index * z_spacing
+        t = 0.0 if layer_count <= 1 else index / (layer_count - 1)
+        color = _interpolate_hex_color("#1d4ed8", "#ea580c", t)
+        is_active = layer.get("layer_id") == active_layer_id
+
+        edge_x = []
+        edge_y = []
+        edge_z = []
+
+        for start, end in layer_graph.edges():
+            x0, y0 = layer_graph.nodes[start]["pos"]
+            x1, y1 = layer_graph.nodes[end]["pos"]
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
+            edge_z.extend([z_level, z_level, None])
+
+        fig.add_trace(
+            go.Scatter3d(
+                x=edge_x,
+                y=edge_y,
+                z=edge_z,
+                mode="lines",
+                line=dict(
+                    width=8 if is_active else 5,
+                    color=color,
+                ),
+                hoverinfo="text",
+                text=[layer["name"]] * len(edge_x),
+                name=layer["name"],
+                opacity=1.0 if is_active else 0.78,
+            )
+        )
+
+    if not has_visible_trace:
+        fig.update_layout(
+            title="Stacked Layer Preview",
+            annotations=[
+                dict(
+                    text="Add loops to one or more layers to see the 3D stack.",
+                    x=0.5,
+                    y=0.5,
+                    xref="paper",
+                    yref="paper",
+                    showarrow=False,
+                    font=dict(size=14, color="#64748b"),
+                )
+            ],
+            margin=dict(l=0, r=0, b=0, t=40),
+        )
+        return fig
+
+    fig.update_layout(
+        title="Stacked Layer Preview",
+        margin=dict(l=0, r=0, b=0, t=40),
+        scene=dict(
+            xaxis=dict(title="X", backgroundcolor="#f8fafc"),
+            yaxis=dict(title="Y", backgroundcolor="#f8fafc"),
+            zaxis=dict(title="Layer Z", backgroundcolor="#f8fafc"),
+            aspectmode="data",
+        ),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0.0),
+    )
+    return fig

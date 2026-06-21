@@ -22,8 +22,11 @@ def create_dcc_stores():
         dcc.Store(id='store-graph-data'),  # Stores the graph representation of the DXF
         dcc.Store(id='store-graph-dimensions'),  # Stores width and height for scaling
         dcc.Store(id='store-loop-catalog'),  # Stores discovered non-zero-winding loops
-        dcc.Store(id='store-active-layer-loop-ids'),  # Stores the current layer loop selection
-        dcc.Store(id='store-layer-validation'),  # Stores compatibility results for the current layer
+        dcc.Store(id='store-preview-loop-id'),  # Stores the loop shown in the preview panel
+        dcc.Store(id='store-loop-preview-action'),  # Stores the latest preview button action
+        dcc.Store(id='store-loop-layer-action'),  # Stores the latest add/remove loop action
+        dcc.Store(id='store-layers'),  # Stores all layer records for Step 2 editing
+        dcc.Store(id='store-active-layer-id'),  # Stores which layer is currently being edited
         dcc.Store(id='store-tiling-config')  # Stores user-defined tiling parameters
     ])
 
