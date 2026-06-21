@@ -1,0 +1,169 @@
+/* --- Global App Styles --- */
+body {
+    background-color: #f4f7f6;
+    margin: 0;
+    padding: 0;
+}
+
+.main-app-container {
+    max-width: 90%;
+    margin: 10px auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+h1, h3, h4 {
+    color: #2c3e50;
+    margin-top: 0;
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background: #e9ecef;
+    margin-bottom: 12px;
+}
+
+/* --- Upload Section --- */
+.upload-container {
+    margin-bottom: 5px;
+}
+
+.upload-area {
+    width: 100%;
+    height: 60px;
+    line-height: 60px;
+    border: 2px dashed #a0aec0;
+    border-radius: 8px;
+    text-align: center;
+    background-color: #f8fafc;
+    color: #4a5568;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.upload-area:hover {
+    background-color: #edf2f7;
+    border-color: #4299e1;
+    color: #2b6cb0;
+}
+
+.status-text {
+    margin-top: 5px;
+    font-size: 0.9rem;
+    color: #2f855a; /* Green for success */
+    font-weight: 500;
+}
+
+/* --- Tabs Content --- */
+.slicer-tab {
+    border-radius: 8px 8px 0 0;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.tab-content {
+    padding: 15px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #ffffff;
+}
+
+.preview-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+.preview-panel h5 {
+    margin-bottom: 8px;
+    color: #1f2937;
+}
+
+.visual-container {
+    min-height: 420px;
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    padding: 4px;
+}
+
+.graph-container {
+    height: 400px;
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.placeholder-text {
+    padding: 30px 0;
+    text-align: center;
+    color: #a0aec0;
+    font-style: italic;
+    background-color: #f8fafc;
+    border-radius: 6px;
+    border: 1px dashed #e2e8f0;
+    margin-bottom: 12px;
+}
+
+/* --- Inputs and Buttons --- */
+.number-input {
+    padding: 6px 10px;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    margin-left: 8px;
+    margin-right: 15px;
+    width: 80px;
+}
+
+.number-input:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+}
+
+.btn-next {
+    background-color: #3182ce;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    float: right;
+}
+
+.btn-next:hover {
+    background-color: #2b6cb0;
+}
+
+.btn-download {
+    background-color: #48bb78;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%;
+}
+
+.btn-download:hover {
+    background-color: #38a169;
+}
+
+@media (max-width: 900px) {
+    .preview-grid {
+        grid-template-columns: 1fr;
+    }
+}

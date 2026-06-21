@@ -1,0 +1,15 @@
+[project]
+name = "3d-print-app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dash>=4.1.0",
+    "dash-bootstrap-components>=1.6.0",
+    "ezdxf>=1.4.3",
+    "fullcontrol>=0.1.2",
+    "matplotlib>=3.10.9",
+    "networkx>=3.6.1",
+    "pytest>=9.0.3",
+]
