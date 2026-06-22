@@ -19,15 +19,18 @@ from src.core.tiling import (
     tile_and_stitch_layer,
     tile_threaded_layer,
 )
+from src.core.pathing import ConnectionResult, connect_chains_sweep
 
 __all__ = [
     "ThreadedLayer",
     "ThreadedNodeRecord",
+    "ConnectionResult",
     "create_periodic_multigraph",
     "create_threaded_loop_edges",
     "add_loop_to_layer",
     "build_layer_graph",
     "build_threaded_layer",
+    "connect_chains_sweep",
     "discover_valid_loops",
     "find_all_periodic_cycles",
     "find_simple_periodic_cycles",

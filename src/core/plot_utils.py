@@ -597,3 +597,51 @@ def create_tiled_component_figure(
         dragmode="zoom",
     )
     return fig
+
+
+def create_connected_component_figure(
+    connected_graph: nx.Graph,
+    added_edges: list[tuple[str, str]] | tuple[tuple[str, str], ...],
+    width: float,
+    height: float,
+    rows: int,
+    cols: int,
+    title: str = "Connected Layer Chains",
+) -> go.Figure:
+    """Create a geometric 2D view of the connected result and highlight new edges."""
+    if connected_graph is None or len(connected_graph.nodes) == 0:
+        return go.Figure()
+
+    fig = create_tiled_component_figure(
+        connected_graph,
+        width,
+        height,
+        rows,
+        cols,
+        title=title,
+    )
+
+    if not added_edges:
+        return fig
+
+    edge_x = []
+    edge_y = []
+    for start, end in added_edges:
+        if start not in connected_graph.nodes or end not in connected_graph.nodes:
+            continue
+        x0, y0 = connected_graph.nodes[start]["pos"]
+        x1, y1 = connected_graph.nodes[end]["pos"]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    fig.add_trace(
+        go.Scatter(
+            x=edge_x,
+            y=edge_y,
+            mode="lines",
+            line=dict(width=5, color="#111827", dash="dash"),
+            hoverinfo="none",
+            name="Added Connections",
+        )
+    )
+    return fig

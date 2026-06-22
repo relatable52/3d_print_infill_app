@@ -29,7 +29,8 @@ def create_dcc_stores():
         dcc.Store(id='store-layers'),  # Stores all layer records for Step 2 editing
         dcc.Store(id='store-active-layer-id'),  # Stores which layer is currently being edited
         dcc.Store(id='store-tiling-config'),  # Stores user-defined tiling parameters
-        dcc.Store(id='store-stitched-layer-results')  # Stores Step 3 tiled/stiched results for all layers
+        dcc.Store(id='store-stitched-layer-results'),  # Stores Step 3 tiled/stitched results for all layers
+        dcc.Store(id='store-connected-layer-results')  # Stores Step 3 chain-connection results for all layers
     ])
 
 def create_processing_tabs():

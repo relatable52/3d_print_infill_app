@@ -51,6 +51,33 @@ TAB_3 = html.Div(
         ),
         html.Div(
             [
+                html.Div(
+                    [
+                        html.Label("Connection Mode"),
+                        dcc.Dropdown(
+                            id="connection-mode-dropdown",
+                            options=[
+                                {"label": "Closest Sweep", "value": "closest"},
+                                {"label": "Sweep Avoid Crossings", "value": "avoid_intersection"},
+                            ],
+                            value="closest",
+                            clearable=False,
+                            className="tiling-dropdown",
+                        ),
+                    ],
+                    className="tiling-control-group",
+                ),
+                html.Div(
+                    [
+                        html.Button("Connect Chains", id="btn-connect-chains", className="layer-action-btn"),
+                    ],
+                    className="tiling-control-group tiling-action-group",
+                ),
+            ],
+            className="tiling-control-row tiling-control-row-secondary",
+        ),
+        html.Div(
+            [
                 html.Label("Display Layer"),
                 dcc.Dropdown(
                     id="tiling-layer-dropdown",
