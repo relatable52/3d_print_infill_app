@@ -507,3 +507,93 @@ def create_stacked_layer_3d_figure(
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0.0),
     )
     return fig
+
+
+def create_tiled_component_figure(
+    tiled_graph: nx.Graph,
+    width: float,
+    height: float,
+    rows: int,
+    cols: int,
+    title: str = "Tiled Layer Components",
+) -> go.Figure:
+    """Create a geometric 2D view with a different color per connected component."""
+    if tiled_graph is None or len(tiled_graph.nodes) == 0:
+        return go.Figure()
+
+    boundary_trace = _create_boundary_trace(0.0, width * cols, 0.0, height * rows)
+    fig = go.Figure(data=[boundary_trace])
+
+    components = list(nx.connected_components(tiled_graph))
+    component_count = max(len(components), 1)
+
+    for component_index, component_nodes in enumerate(components):
+        component_graph = tiled_graph.subgraph(component_nodes)
+        t = 0.0 if component_count <= 1 else component_index / (component_count - 1)
+        color = _interpolate_hex_color("#2563eb", "#ea580c", t)
+
+        edge_x = []
+        edge_y = []
+        for start, end in component_graph.edges():
+            x0, y0 = tiled_graph.nodes[start]["pos"]
+            x1, y1 = tiled_graph.nodes[end]["pos"]
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
+
+        node_x = []
+        node_y = []
+        node_text = []
+        for node_id in component_graph.nodes():
+            x, y = tiled_graph.nodes[node_id]["pos"]
+            node_x.append(x)
+            node_y.append(y)
+            node_text.append(str(node_id))
+
+        fig.add_trace(
+            go.Scatter(
+                x=edge_x,
+                y=edge_y,
+                mode="lines",
+                line=dict(width=3, color=color),
+                hoverinfo="none",
+                name=f"Chain {component_index + 1}",
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=node_x,
+                y=node_y,
+                mode="markers",
+                text=node_text,
+                hoverinfo="text",
+                marker=dict(size=6, color=color, line=dict(width=1, color="#0f172a")),
+                showlegend=False,
+            )
+        )
+
+    fig.update_layout(
+        title=title,
+        showlegend=True,
+        hovermode="closest",
+        margin=dict(b=20, l=5, r=5, t=40),
+        xaxis=dict(
+            showgrid=True,
+            zeroline=False,
+            showticklabels=True,
+            scaleanchor="y",
+            scaleratio=1,
+            gridwidth=1,
+            gridcolor="lightgray",
+        ),
+        yaxis=dict(
+            showgrid=True,
+            zeroline=False,
+            showticklabels=True,
+            scaleanchor="x",
+            scaleratio=1,
+            gridwidth=1,
+            gridcolor="lightgray",
+        ),
+        dragmode="zoom",
+    )
+    return fig

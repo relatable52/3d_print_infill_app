@@ -127,6 +127,28 @@ hr {
     margin-bottom: 12px;
 }
 
+.tiling-control-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    align-items: end;
+    margin-bottom: 16px;
+}
+
+.tiling-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tiling-action-group {
+    justify-content: flex-end;
+}
+
+.tiling-dropdown {
+    min-width: 0;
+}
+
 .layer-action-btn {
     background-color: #1d4ed8;
     color: white;
@@ -337,6 +359,10 @@ hr {
 
 @media (max-width: 900px) {
     .preview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tiling-control-row {
         grid-template-columns: 1fr;
     }
 }

@@ -223,27 +223,31 @@ A unit-cell layer preview driven by the current loop selection.
 
 ### Target
 
-Turn the selected unit-cell layer into a repeated 2D lattice layer.
+Turn one selected layer into a repeated 2D lattice layer while preserving path continuity across periodic boundaries.
 
 ### Tasks
 
 - create `src/core/tiling.py`
-- port the simpler tiling path from the old code first
-- tile the selected layer graph by row and column offsets
-- stitch periodic neighbors across cell boundaries
-- avoid depending on `create_threaded_visit_graph(...)` in the first implementation unless absolutely necessary
+- add a layer-level threaded representation builder from the selected loops
+- port the simpler threaded tiling and stitching path from the old code first
+- tile the threaded layer by row and column offsets
+- stitch periodic neighbors across cell boundaries only when the threaded visit identity matches
+- keep the plain merged `layer_graph` as a preview structure only, not the authoritative tiling input
+- add a geometric debug plot for the tiled stitched graph
+- color each connected component differently in the debug plot so each chain is easy to inspect
 
-### Small checks
+### Manual check
 
-- `1 x 1` tiling matches the unit-cell layer preview
-- `1 x N` tiling repeats correctly horizontally
-- `N x 1` tiling repeats correctly vertically
-- the tiled result stays geometrically aligned with the unit-cell width and height
-- boundary stitching looks correct in at least one known sample
+- add a simple `if __name__ == "__main__"` path or equivalent debug entry point for Milestone 8
+- allow manual changes to `m` and `n` grid size in that debug path
+- tile and stitch the selected layer for the chosen `m x n` grid
+- plot the tiled stitched graph in geometric coordinates
+- render each connected component in a different color so each continuous chain can be visually inspected
+- verify manually on at least one known sample that the number and shape of chains look correct before moving to Milestone 9
 
 ### Deliverable
 
-A tiled layer graph that represents the whole print region for one layer.
+A tiled stitched graph for one layer where repeated boundary visits remain distinct chains and can be visually inspected component-by-component.
 
 ## Milestone 9: Connect loose ends into a printable traversal
 

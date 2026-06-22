@@ -2,6 +2,7 @@ from dash import html, dcc
 
 from src.components.tab_1 import TAB_1
 from src.components.tab_2 import TAB_2
+from src.components.tab_3 import TAB_3
 
 def create_upload_section():
     """Creates a basic drag-and-drop upload zone."""
@@ -27,7 +28,8 @@ def create_dcc_stores():
         dcc.Store(id='store-loop-layer-action'),  # Stores the latest add/remove loop action
         dcc.Store(id='store-layers'),  # Stores all layer records for Step 2 editing
         dcc.Store(id='store-active-layer-id'),  # Stores which layer is currently being edited
-        dcc.Store(id='store-tiling-config')  # Stores user-defined tiling parameters
+        dcc.Store(id='store-tiling-config'),  # Stores user-defined tiling parameters
+        dcc.Store(id='store-stitched-layer-results')  # Stores Step 3 tiled/stiched results for all layers
     ])
 
 def create_processing_tabs():
@@ -54,18 +56,7 @@ def create_processing_tabs():
             
             # STEP 3: TILING & STITCHING
             dcc.Tab(label="3. Layer Tiling", value="step-3", disabled=True, className="slicer-tab", id="tab-step-3", children=[
-                html.Div([
-                    html.H4("Layer Tiling Preview"),
-                    html.Label("Rows: "),
-                    dcc.Input(id="input-rows", type="number", value=3, min=1, className="number-input"),
-                    
-                    html.Label("Columns: "),
-                    dcc.Input(id="input-cols", type="number", value=4, min=1, className="number-input"),
-                    
-                    html.Div("The tiled layer preview and path stitching summary will go here.", className="placeholder-text"),
-                    
-                    html.Button("Proceed to G-Code Export ➔", id="btn-next-step-3", className="btn-next")
-                ], className="tab-content")
+                TAB_3
             ]),
             
             # STEP 4: G-CODE GENERATION
