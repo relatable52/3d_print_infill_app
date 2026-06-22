@@ -1,5 +1,7 @@
+import numpy as np
 import plotly.graph_objects as go
 import networkx as nx
+from fullcontrol.visualize.tube_mesh import FlowTubeMesh
 
 
 def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
@@ -19,6 +21,52 @@ def _interpolate_hex_color(start_hex: str, end_hex: str, t: float) -> str:
         for start_channel, end_channel in zip(start_rgb, end_rgb)
     )
     return _rgb_to_hex(interpolated)
+
+
+def _build_fullcontrol_path_mesh(
+    path,
+    colors_now: list[str],
+    extrusion_width: float | None,
+    layer_height: float | None,
+    sides: int = 8,
+) -> go.Mesh3d | None:
+    path_points = np.array([path.xvals, path.yvals, path.zvals]).T
+    if len(path_points) < 2:
+        return None
+
+    good_points = np.ones(len(path_points), dtype=bool)
+    duplicate_steps = np.all(np.diff(path_points, axis=0) == 0, axis=1)
+    if np.any(duplicate_steps):
+        good_points[1:] = ~duplicate_steps
+        colors_now = np.array(colors_now, dtype=object)[good_points].tolist()
+
+    path_points = path_points[good_points]
+    if len(path_points) < 2:
+        return None
+
+    widths = getattr(path, "widths", None)
+    if widths:
+        widths = np.array(widths)[good_points]
+    else:
+        widths = extrusion_width if extrusion_width is not None else 0.4
+
+    heights = getattr(path, "heights", None)
+    if heights:
+        heights = np.array(heights)[good_points]
+    else:
+        heights = layer_height if layer_height is not None else 0.2
+
+    mesh = FlowTubeMesh(
+        path_points,
+        widths=widths,
+        heights=heights,
+        sides=sides,
+        capped=False,
+        inplace_path=True,
+        rounding_strength=0.4,
+        flat_sides=False,
+    )
+    return mesh.to_Mesh3d(colors=colors_now, hoverinfo="none", flatshading=True, showlegend=False)
 
 def _get_graph_bounds(graph: nx.Graph) -> tuple[float, float, float, float]:
     all_x = []
@@ -643,5 +691,131 @@ def create_connected_component_figure(
             hoverinfo="none",
             name="Added Connections",
         )
+    )
+    return fig
+
+
+def create_fullcontrol_plot_figure(
+    plot_data,
+    title: str = "FullControl Preview",
+    extrusion_width: float | None = None,
+    layer_height: float | None = None,
+) -> go.Figure:
+    """Convert FullControl raw plot data into a Dash-friendly Plotly figure."""
+    fig = go.Figure()
+
+    bounding_box = getattr(plot_data, "bounding_box", None)
+    if bounding_box is not None:
+        minx = getattr(bounding_box, "minx", getattr(bounding_box, "xmin", None))
+        maxx = getattr(bounding_box, "maxx", getattr(bounding_box, "xmax", None))
+        miny = getattr(bounding_box, "miny", getattr(bounding_box, "ymin", None))
+        maxy = getattr(bounding_box, "maxy", getattr(bounding_box, "ymax", None))
+        minz = getattr(bounding_box, "minz", getattr(bounding_box, "zmin", None))
+        maxz = getattr(bounding_box, "maxz", getattr(bounding_box, "zmax", None))
+        x_padding = 0.0
+        y_padding = 0.0
+        z_padding = 0.0
+        if minx is not None and maxx is not None:
+            x_padding = max((maxx - minx) * 0.06, extrusion_width or 0.4)
+        if miny is not None and maxy is not None:
+            y_padding = max((maxy - miny) * 0.06, extrusion_width or 0.4)
+        if minz is not None and maxz is not None:
+            z_padding = max((maxz - minz) * 0.04, layer_height or 0.2)
+
+        x_range = [minx - x_padding, maxx + x_padding] if minx is not None and maxx is not None else None
+        y_range = [miny - y_padding, maxy + y_padding] if miny is not None and maxy is not None else None
+        z_range = [minz - z_padding, maxz + z_padding] if minz is not None and maxz is not None else None
+
+        xy_extent = max(
+            (maxx - minx) if minx is not None and maxx is not None else 0.0,
+            (maxy - miny) if miny is not None and maxy is not None else 0.0,
+        )
+        bead_width = extrusion_width if extrusion_width is not None else max(xy_extent * 0.012, 0.1)
+        bead_height = layer_height if layer_height is not None else max(bead_width * 0.5, 0.05)
+    else:
+        x_range = y_range = z_range = None
+        bead_width = extrusion_width if extrusion_width is not None else 0.1
+        bead_height = layer_height if layer_height is not None else 0.05
+
+    for path in getattr(plot_data, "paths", []):
+        if not getattr(path, "xvals", None):
+            continue
+
+        is_extruding = getattr(getattr(path, "extruder", None), "on", False)
+        if getattr(path, "colors", None):
+            first_color = path.colors[0]
+            if isinstance(first_color, (list, tuple)) and len(first_color) == 3:
+                rgb_color = tuple(max(0, min(255, int(channel * 255))) for channel in first_color)
+                color = f"rgb({rgb_color[0]}, {rgb_color[1]}, {rgb_color[2]})"
+            else:
+                color = "#2563eb" if is_extruding else "#94a3b8"
+        else:
+            color = "#2563eb" if is_extruding else "#94a3b8"
+
+        if is_extruding:
+            colors_now = []
+            for point_color in getattr(path, "colors", []) or []:
+                if isinstance(point_color, (list, tuple)) and len(point_color) == 3:
+                    colors_now.append(
+                        f"rgb({point_color[0] * 255:.2f}, {point_color[1] * 255:.2f}, {point_color[2] * 255:.2f})"
+                    )
+                else:
+                    colors_now.append(color)
+            if not colors_now:
+                colors_now = [color] * len(path.xvals)
+
+            mesh_trace = _build_fullcontrol_path_mesh(
+                path,
+                colors_now=colors_now,
+                extrusion_width=bead_width,
+                layer_height=bead_height,
+            )
+            if mesh_trace is not None:
+                fig.add_trace(mesh_trace)
+        else:
+            fig.add_trace(
+                go.Scatter3d(
+                    mode="lines",
+                    x=path.xvals,
+                    y=path.yvals,
+                    z=path.zvals,
+                    line=dict(color=color, width=3, dash="dash"),
+                    hoverinfo="none",
+                    name="Travel",
+                    showlegend=False,
+                )
+            )
+
+    fig.update_layout(
+        title=title,
+        template="plotly_dark",
+        paper_bgcolor="#020617",
+        plot_bgcolor="#020617",
+        margin=dict(l=0, r=0, b=0, t=40),
+        scene=dict(
+            bgcolor="#020617",
+            xaxis=dict(
+                title="X",
+                range=x_range,
+                backgroundcolor="#020617",
+                gridcolor="rgba(148,163,184,0.18)",
+                zerolinecolor="rgba(148,163,184,0.22)",
+            ),
+            yaxis=dict(
+                title="Y",
+                range=y_range,
+                backgroundcolor="#020617",
+                gridcolor="rgba(148,163,184,0.18)",
+                zerolinecolor="rgba(148,163,184,0.22)",
+            ),
+            zaxis=dict(
+                title="Z",
+                range=z_range,
+                backgroundcolor="#020617",
+                gridcolor="rgba(148,163,184,0.18)",
+                zerolinecolor="rgba(148,163,184,0.22)",
+            ),
+            aspectmode="data",
+        ),
     )
     return fig

@@ -3,6 +3,7 @@ from dash import html, dcc
 from src.components.tab_1 import TAB_1
 from src.components.tab_2 import TAB_2
 from src.components.tab_3 import TAB_3
+from src.components.tab_4 import TAB_4
 
 def create_upload_section():
     """Creates a basic drag-and-drop upload zone."""
@@ -30,7 +31,8 @@ def create_dcc_stores():
         dcc.Store(id='store-active-layer-id'),  # Stores which layer is currently being edited
         dcc.Store(id='store-tiling-config'),  # Stores user-defined tiling parameters
         dcc.Store(id='store-stitched-layer-results'),  # Stores Step 3 tiled/stitched results for all layers
-        dcc.Store(id='store-connected-layer-results')  # Stores Step 3 chain-connection results for all layers
+        dcc.Store(id='store-connected-layer-results'),  # Stores Step 3 chain-connection results for all layers
+        dcc.Store(id='store-generated-gcode')  # Stores generated G-code text for Step 4 download
     ])
 
 def create_processing_tabs():
@@ -62,12 +64,7 @@ def create_processing_tabs():
             
             # STEP 4: G-CODE GENERATION
             dcc.Tab(label="4. Export G-Code", value="step-4", disabled=True, className="slicer-tab", id="tab-step-4", children=[
-                html.Div([
-                    html.H4("Print Settings & Export"),
-                    html.P("Configure nozzle temperature, extrusion rate, and speed."),
-                    
-                    html.Button("Download G-Code", id="btn-download-gcode", className="btn-download")
-                ], className="tab-content")
+                TAB_4
             ]),
         ]
     )

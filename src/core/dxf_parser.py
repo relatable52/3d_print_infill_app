@@ -1,9 +1,23 @@
-import io
+import os
+import tempfile
 
 import ezdxf
 import networkx as nx
 
-def parse_dxf_to_graph(file_path_or_bytes, tolerance_decimals: int = 4)-> tuple[nx.Graph, float, float]:
+
+def _read_dxf_from_bytes(binary_data: bytes):
+    """Read uploaded DXF bytes by delegating to ezdxf.readfile on a temp file."""
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".dxf") as temp_file:
+            temp_file.write(binary_data)
+            temp_path = temp_file.name
+        return ezdxf.readfile(temp_path)
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
+
+def parse_dxf_to_graph(file_path_or_bytes, tolerance_decimals: int = 4)-> tuple[nx.Graph, float, float, str | None]:
     """
     Parses a DXF file (or bytes) and extracts a graph representation of the line segments.
     Args:
@@ -15,18 +29,19 @@ def parse_dxf_to_graph(file_path_or_bytes, tolerance_decimals: int = 4)-> tuple[
     # 1. Read the DXF (Supports both file paths and in-memory bytes from Dash)
     try:
         if isinstance(file_path_or_bytes, bytes):
-            try:
-                doc = ezdxf.read(io.StringIO(file_path_or_bytes.decode('utf-8')))
-            except UnicodeDecodeError:
-                doc = ezdxf.read(io.BytesIO(file_path_or_bytes))
+            doc = _read_dxf_from_bytes(file_path_or_bytes)
         else:
             doc = ezdxf.readfile(file_path_or_bytes)
     except Exception as e:
-        print(f"Error reading DXF: {e}")
-        return None, 0, 0
+        error_message = f"{type(e).__name__}: {e}"
+        print(f"Error reading DXF: {error_message}")
+        return None, 0, 0, error_message
 
     msp = doc.modelspace()
     G = nx.Graph()
+    print(doc)
+    print(msp)
+    print(f"Modelspace entity count: {len(msp)}")
 
     # 2. Setup tracking variables
     node_map = {} # Maps rounded (x, y) coordinates to integer Node IDs
@@ -57,6 +72,7 @@ def parse_dxf_to_graph(file_path_or_bytes, tolerance_decimals: int = 4)-> tuple[
 
     # 3. Extract Geometry
     for entity in msp:
+        print(f"Entity type: {entity.dxftype()}")
         if entity.dxftype() == 'LINE':
             u_id = get_or_create_node(entity.dxf.start.x, entity.dxf.start.y)
             v_id = get_or_create_node(entity.dxf.end.x, entity.dxf.end.y)
@@ -65,6 +81,7 @@ def parse_dxf_to_graph(file_path_or_bytes, tolerance_decimals: int = 4)-> tuple[
                 
         elif entity.dxftype() == 'LWPOLYLINE':
             points = entity.get_points() # Returns (x, y, start_width, end_width, bulge)
+            print(points)
             node_ids = [get_or_create_node(p[0], p[1]) for p in points]
             
             # Connect sequential points
@@ -87,4 +104,4 @@ def parse_dxf_to_graph(file_path_or_bytes, tolerance_decimals: int = 4)-> tuple[
         px, py = G.nodes[n]['pos']
         G.nodes[n]['pos'] = (px - min_x, py - min_y)
 
-    return G, width, height
+    return G, width, height, None

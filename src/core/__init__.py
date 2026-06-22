@@ -20,20 +20,34 @@ from src.core.tiling import (
     tile_threaded_layer,
 )
 from src.core.pathing import ConnectionResult, connect_chains_sweep
+from src.core.gcode import (
+    ExportSettings,
+    build_fullcontrol_steps,
+    build_repeating_layer_sequence,
+    extract_ordered_path_points,
+    generate_fullcontrol_gcode,
+    generate_fullcontrol_plot_data,
+)
 
 __all__ = [
     "ThreadedLayer",
     "ThreadedNodeRecord",
     "ConnectionResult",
+    "ExportSettings",
     "create_periodic_multigraph",
     "create_threaded_loop_edges",
     "add_loop_to_layer",
+    "build_fullcontrol_steps",
     "build_layer_graph",
     "build_threaded_layer",
+    "build_repeating_layer_sequence",
     "connect_chains_sweep",
     "discover_valid_loops",
+    "extract_ordered_path_points",
     "find_all_periodic_cycles",
     "find_simple_periodic_cycles",
+    "generate_fullcontrol_gcode",
+    "generate_fullcontrol_plot_data",
     "loop_record_to_dict",
     "physical_edges_to_node_sequence",
     "physical_edges_to_path_text",
