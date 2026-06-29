@@ -140,6 +140,32 @@ uv sync
 uv run -m src.app
 ```
 
+## Hugging Face Spaces Deployment
+
+This repo can be deployed to a Hugging Face Docker Space without a `requirements.txt`.
+
+Dependencies are installed directly from [pyproject.toml](C:/Users/Chinh/Documents/AIME/3d_print_app/pyproject.toml).
+
+Files used for deployment:
+
+- [Dockerfile](C:/Users/Chinh/Documents/AIME/3d_print_app/Dockerfile)
+- [.dockerignore](C:/Users/Chinh/Documents/AIME/3d_print_app/.dockerignore)
+- [src/app.py](C:/Users/Chinh/Documents/AIME/3d_print_app/src/app.py)
+
+Deployment steps:
+
+1. Create a new Hugging Face Space.
+2. Choose `Docker` as the SDK.
+3. Push this repository to the Space repository.
+4. Hugging Face will build the image automatically.
+5. The app will start on host `0.0.0.0` and port `7860`.
+
+Notes:
+
+- this setup uses Python `3.13`
+- the container command is `python -m src.app`
+- the app reads `PORT` from the environment and defaults to `7860`
+
 ## Requirements
 
 - Python `>= 3.13`

@@ -1,4 +1,5 @@
 import dash
+import os
 from src.components.main_layout import serve_app_layout
 from src.callbacks import register_callbacks
 
@@ -14,4 +15,8 @@ app.layout = serve_app_layout()
 register_callbacks(app)
 
 if __name__ == '__main__':
-    app.run(debug=False, port=8050)
+    app.run(
+        debug=False,
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "7860")),
+    )
