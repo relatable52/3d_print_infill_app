@@ -1,3 +1,13 @@
+---
+title: 3D Print App
+emoji: 🧱
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 3D Print App
 
 Dash app for designing lattice-based FDM print paths from a DXF-defined unit cell.
