@@ -1,0 +1,173 @@
+[
+  {
+    "layer_id": "layer-1",
+    "name": "Layer 1",
+    "selected_loop_ids": [
+      "L2"
+    ],
+    "validation": {
+      "is_valid": false,
+      "message": "Cannot add L3. It shares edges with L2.",
+      "conflicting_loop_ids": [
+        "L2"
+      ],
+      "shared_edges": [
+        [
+          0,
+          1
+        ],
+        [
+          5,
+          6
+        ]
+      ]
+    },
+    "layer_graph": {
+      "directed": false,
+      "multigraph": false,
+      "graph": {},
+      "nodes": [
+        {
+          "pos": [
+            4.3301270189,
+            5
+          ],
+          "id": 0
+        },
+        {
+          "pos": [
+            4.3301270189,
+            0
+          ],
+          "id": 1
+        },
+        {
+          "pos": [
+            4.3301270189,
+            15
+          ],
+          "id": 4
+        },
+        {
+          "pos": [
+            8.6602540378,
+            12.5
+          ],
+          "id": 3
+        },
+        {
+          "pos": [
+            0,
+            12.5
+          ],
+          "id": 5
+        },
+        {
+          "pos": [
+            0,
+            7.5
+          ],
+          "id": 6
+        }
+      ],
+      "edges": [
+        {
+          "source": 0,
+          "target": 1
+        },
+        {
+          "source": 0,
+          "target": 6
+        },
+        {
+          "source": 4,
+          "target": 3
+        },
+        {
+          "source": 5,
+          "target": 6
+        }
+      ]
+    }
+  },
+  {
+    "layer_id": "layer-2",
+    "name": "Layer 2",
+    "selected_loop_ids": [
+      "L3"
+    ],
+    "validation": {
+      "is_valid": true,
+      "message": "Added L3 to the current layer.",
+      "conflicting_loop_ids": [],
+      "shared_edges": []
+    },
+    "layer_graph": {
+      "directed": false,
+      "multigraph": false,
+      "graph": {},
+      "nodes": [
+        {
+          "pos": [
+            4.3301270189,
+            5
+          ],
+          "id": 0
+        },
+        {
+          "pos": [
+            4.3301270189,
+            0
+          ],
+          "id": 1
+        },
+        {
+          "pos": [
+            4.3301270189,
+            15
+          ],
+          "id": 4
+        },
+        {
+          "pos": [
+            0,
+            12.5
+          ],
+          "id": 5
+        },
+        {
+          "pos": [
+            0,
+            7.5
+          ],
+          "id": 6
+        },
+        {
+          "pos": [
+            8.6602540378,
+            7.5
+          ],
+          "id": 2
+        }
+      ],
+      "edges": [
+        {
+          "source": 0,
+          "target": 1
+        },
+        {
+          "source": 0,
+          "target": 2
+        },
+        {
+          "source": 4,
+          "target": 5
+        },
+        {
+          "source": 5,
+          "target": 6
+        }
+      ]
+    }
+  }
+]

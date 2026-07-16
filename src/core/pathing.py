@@ -4,7 +4,9 @@ from typing import Literal
 
 import networkx as nx
 
-ConnectionMode = Literal["closest", "avoid_intersection"]
+ConnectionMode = Literal["closest", "avoid_intersection", "parallel"]
+
+PARALLEL_SCORE_THRESHOLD = 0.9
 
 
 @dataclass(frozen=True)
@@ -136,6 +138,37 @@ def _component_ports(graph: nx.Graph, component_nodes: set[str]) -> list[str]:
     return sorted(component_nodes)
 
 
+def _component_direction(graph: nx.Graph, component_ports: list[str]) -> tuple[float, float]:
+    if len(component_ports) < 2:
+        return 0.0, 0.0
+
+    first_position = _node_position(graph, component_ports[0])
+    second_position = _node_position(graph, component_ports[1])
+    delta_x = second_position[0] - first_position[0]
+    delta_y = second_position[1] - first_position[1]
+    length = hypot(delta_x, delta_y)
+    if length == 0:
+        return 0.0, 0.0
+
+    return delta_x / length, delta_y / length
+
+
+def _parallel_score(
+    direction_a: tuple[float, float],
+    direction_b: tuple[float, float],
+) -> float:
+    return abs(direction_a[0] * direction_b[0] + direction_a[1] * direction_b[1])
+
+
+def _candidate_sort_key(candidate: dict) -> tuple[int, float, int, tuple[float, float]]:
+    return (
+        candidate["rank_distance"],
+        candidate["euclidean_distance"],
+        candidate["same_boundary"],
+        candidate["top_left_key"],
+    )
+
+
 def _choose_exit_port(
     graph: nx.Graph,
     component_ports: list[str],
@@ -253,6 +286,7 @@ def connect_chains_sweep(
                 "id": component_index,
                 "nodes": set(component_nodes),
                 "ports": ports,
+                "direction": _component_direction(working_graph, ports),
                 "connected": False,
             }
         )
@@ -287,6 +321,7 @@ def connect_chains_sweep(
         ),
     )
     start_component["connected"] = True
+    current_component = start_component
     current_exit_port = _choose_exit_port(working_graph, start_component["ports"], start_port)
 
     added_edges: list[tuple[str, str]] = []
@@ -312,6 +347,7 @@ def connect_chains_sweep(
                         "entry_port": entry_port,
                         "rank_distance": _rank_manhattan_distance(current_rank, target_rank),
                         "euclidean_distance": _distance(current_position, target_position),
+                        "parallel_score": _parallel_score(current_component["direction"], component["direction"]),
                         "same_boundary": 0 if current_boundary_labels.intersection(target_boundary_labels) else 1,
                         "top_left_key": _top_left_key(target_position),
                         "intersects": _candidate_intersects_existing_geometry(
@@ -332,21 +368,26 @@ def connect_chains_sweep(
         else:
             candidates_to_sort = candidate_steps
 
-        selected_candidate = min(
-            candidates_to_sort,
-            key=lambda candidate: (
-                candidate["rank_distance"],
-                candidate["euclidean_distance"],
-                candidate["same_boundary"],
-                candidate["top_left_key"],
-            ),
-        )
+        sorted_candidates = sorted(candidates_to_sort, key=_candidate_sort_key)
+
+        if mode == "parallel":
+            selected_candidate = next(
+                (
+                    candidate
+                    for candidate in sorted_candidates
+                    if candidate["parallel_score"] >= PARALLEL_SCORE_THRESHOLD
+                ),
+                sorted_candidates[0],
+            )
+        else:
+            selected_candidate = sorted_candidates[0]
 
         entry_port = selected_candidate["entry_port"]
         target_component = selected_candidate["component"]
         working_graph.add_edge(current_exit_port, entry_port)
         added_edges.append((current_exit_port, entry_port))
         target_component["connected"] = True
+        current_component = target_component
         current_exit_port = _choose_exit_port(working_graph, target_component["ports"], entry_port)
 
     component_count_after = nx.number_connected_components(working_graph)
@@ -356,3 +397,38 @@ def connect_chains_sweep(
         component_count_before=component_count_before,
         component_count_after=component_count_after,
     )
+
+
+if __name__ == "__main__":
+    sample_graph = nx.Graph()
+    sample_components = {
+        "start": ((0.0, 10.0), (4.0, 10.0)),
+        "near_vertical": ((5.0, 9.0), (5.0, 11.0)),
+        "near_parallel": ((6.0, 8.0), (10.0, 8.0)),
+    }
+
+    for name, (point_a, point_b) in sample_components.items():
+        node_a = f"{name}_a"
+        node_b = f"{name}_b"
+        sample_graph.add_node(node_a, pos=point_a)
+        sample_graph.add_node(node_b, pos=point_b)
+        sample_graph.add_edge(node_a, node_b)
+
+    result = connect_chains_sweep(sample_graph, mode="parallel")
+    if not result.added_edges:
+        print("No connection added.")
+    else:
+        first_edge = result.added_edges[0]
+        directions_by_node: dict[str, tuple[float, float]] = {}
+        for component_nodes in nx.connected_components(sample_graph):
+            ports = _component_ports(sample_graph, component_nodes)
+            direction = _component_direction(sample_graph, ports)
+            for node_id in component_nodes:
+                directions_by_node[node_id] = direction
+
+        score = _parallel_score(
+            directions_by_node[first_edge[0]],
+            directions_by_node[first_edge[1]],
+        )
+        print(f"First picked segment: {first_edge}")
+        print(f"Parallel score: {score:.3f}")

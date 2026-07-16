@@ -59,6 +59,7 @@ TAB_3 = html.Div(
                             options=[
                                 {"label": "Closest Sweep", "value": "closest"},
                                 {"label": "Sweep Avoid Crossings", "value": "avoid_intersection"},
+                                {"label": "Closest Sweep + Parallel Filter", "value": "parallel"},
                             ],
                             value="closest",
                             clearable=False,

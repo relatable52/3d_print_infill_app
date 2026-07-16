@@ -1,0 +1,184 @@
+[
+  {
+    "layer_id": "layer-1",
+    "name": "Layer 1",
+    "selected_loop_ids": [
+      "L3"
+    ],
+    "validation": {
+      "is_valid": true,
+      "message": "Added L3 to the current layer.",
+      "conflicting_loop_ids": [],
+      "shared_edges": []
+    },
+    "layer_graph": {
+      "directed": false,
+      "multigraph": false,
+      "graph": {},
+      "nodes": [
+        {
+          "pos": [
+            0.675,
+            3.3255375506
+          ],
+          "id": 0
+        },
+        {
+          "pos": [
+            1.635,
+            1.6627687753
+          ],
+          "id": 1
+        },
+        {
+          "pos": [
+            0,
+            1.6627687753
+          ],
+          "id": 3
+        },
+        {
+          "pos": [
+            4.62,
+            1.6627687753
+          ],
+          "id": 4
+        },
+        {
+          "pos": [
+            2.9850000000000003,
+            1.6627687753
+          ],
+          "id": 5
+        },
+        {
+          "pos": [
+            3.9450000000000003,
+            3.3255375506
+          ],
+          "id": 7
+        },
+        {
+          "pos": [
+            3.9450000000000003,
+            0
+          ],
+          "id": 6
+        },
+        {
+          "pos": [
+            0.675,
+            0
+          ],
+          "id": 2
+        }
+      ],
+      "edges": [
+        {
+          "source": 0,
+          "target": 1
+        },
+        {
+          "source": 1,
+          "target": 3
+        },
+        {
+          "source": 4,
+          "target": 5
+        },
+        {
+          "source": 5,
+          "target": 7
+        },
+        {
+          "source": 6,
+          "target": 2
+        }
+      ]
+    }
+  },
+  {
+    "layer_id": "layer-2",
+    "name": "Layer 2",
+    "selected_loop_ids": [
+      "L4"
+    ],
+    "validation": {
+      "is_valid": true,
+      "message": "Added L4 to the current layer.",
+      "conflicting_loop_ids": [],
+      "shared_edges": []
+    },
+    "layer_graph": {
+      "directed": false,
+      "multigraph": false,
+      "graph": {},
+      "nodes": [
+        {
+          "pos": [
+            0.675,
+            0
+          ],
+          "id": 2
+        },
+        {
+          "pos": [
+            1.635,
+            1.6627687753
+          ],
+          "id": 1
+        },
+        {
+          "pos": [
+            0,
+            1.6627687753
+          ],
+          "id": 3
+        },
+        {
+          "pos": [
+            4.62,
+            1.6627687753
+          ],
+          "id": 4
+        },
+        {
+          "pos": [
+            2.9850000000000003,
+            1.6627687753
+          ],
+          "id": 5
+        },
+        {
+          "pos": [
+            3.9450000000000003,
+            0
+          ],
+          "id": 6
+        }
+      ],
+      "edges": [
+        {
+          "source": 2,
+          "target": 1
+        },
+        {
+          "source": 2,
+          "target": 6
+        },
+        {
+          "source": 1,
+          "target": 3
+        },
+        {
+          "source": 4,
+          "target": 5
+        },
+        {
+          "source": 5,
+          "target": 6
+        }
+      ]
+    }
+  }
+]

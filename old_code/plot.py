@@ -1,166 +1,200 @@
-import networkx as nx
-import numpy as np
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "matplotlib",
+#     "numpy",
+# ]
+# ///
+
+import sys
+import os
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-from unitcell import honeycomb_unit_cell, snake_unit_cell, diamond_unit_cell
+import numpy as np
+from matplotlib.collections import LineCollection
+from matplotlib import cm
 
-def create_periodic_multigraph(original_graph, width, height, tolerance=1e-5):
+# Enable LaTeX text rendering and set academic fonts
+plt.rcParams.update({
+    # "text.usetex": True,
+    # "font.family": "serif",
+    # "font.serif": ["Computer Modern Roman"],
+    "font.size": 10,
+    "axes.labelsize": 10,
+    "legend.fontsize": 8,
+    "xtick.labelsize": 8,
+    "ytick.labelsize": 8,
+})
+
+def extract_first_layer(filepath):
     """
-    Collapses a 2D unit cell graph into a periodic MultiGraph.
-    Labels merged nodes as "A+B".
+    Reads a G-code file line-by-line to extract the first layer toolpath.
+    Filters out zero-length/dummy moves to prevent visual breaks.
     """
-    # 1. Identify Merges
-    merge_logic = nx.Graph()
-    merge_logic.add_nodes_from(original_graph.nodes())
+    x_coords, y_coords = [], []
+    last_x, last_y, current_z = 0.0, 0.0, None
+    first_layer_z = None
+    temp_moves = []
     
-    nodes = list(original_graph.nodes(data=True))
+    with open(filepath, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.split(';')[0].strip()
+            if not line:
+                continue
+                
+            if line.startswith('G0') or line.startswith('G1'):
+                parts = line.split()
+                x, y, z, e = None, None, None, None
+                
+                for part in parts:
+                    if part.startswith('X'): x = float(part[1:])
+                    elif part.startswith('Y'): y = float(part[1:])
+                    elif part.startswith('Z'): z = float(part[1:])
+                    elif part.startswith('E'): e = float(part[1:])
+                
+                if z is not None:
+                    current_z = z
+                    
+                current_x = x if x is not None else last_x
+                current_y = y if y is not None else last_y
+                
+                if e is not None and e > 0 and first_layer_z is None:
+                    first_layer_z = current_z
+                    
+                if first_layer_z is not None and current_z is not None and current_z > first_layer_z:
+                    break
+                    
+                if first_layer_z is None:
+                    if current_z is not None:
+                        temp_moves.append((current_x, current_y, current_z))
+                else:
+                    if temp_moves:
+                        for tx, ty, tz in temp_moves:
+                            if tz == first_layer_z:
+                                # Ensure we don't append a coordinate if it's identical to the last one
+                                if not x_coords or (tx != x_coords[-1] or ty != y_coords[-1]):
+                                    x_coords.append(tx)
+                                    y_coords.append(ty)
+                        temp_moves = []
+                        
+                    if current_z == first_layer_z:
+                        # Prevent zero-length dummy segments from breaking the visual tube
+                        if not x_coords or (current_x != x_coords[-1] or current_y != y_coords[-1]):
+                            x_coords.append(current_x)
+                            y_coords.append(current_y)
+
+                last_x, last_y = current_x, current_y
+
+    if not x_coords:
+        raise ValueError("Could not detect any first layer extrusion in the provided file.")
+
+    return x_coords, y_coords
+
+def plot_toolpath(x, y, output_name="first_layer"):
+    points = np.array([x, y]).T.reshape(-1, 1, 2)
+    segments = np.concatenate([points[:-1], points[1:]], axis=1)
     
-    for i in range(len(nodes)):
-        u_id, u_data = nodes[i]
-        x1, y1 = u_data['pos']
+    N = len(segments)
+
+    # 1. Generate the true colors from the colormap
+    cmap = plt.get_cmap('autumn')
+    norm = plt.Normalize(0, N)
+    mapped_colors = cmap(norm(np.arange(N)))
+
+    # 2. Build your exact stacking sequence
+    indices = []
+    types = []
+
+    for i in range(N+1):
+        if i < N:
+            # Add the background segment
+            indices.append(i)
+            types.append(0)  # (i)-background
+
+        if i > 0:
+            # Add the foreground segment
+            indices.append(i-1)
+            types.append(1)  # (i-1)-true
         
-        for j in range(i + 1, len(nodes)):
-            v_id, v_data = nodes[j]
-            x2, y2 = v_data['pos']
-            
-            dx = abs(x1 - x2)
-            dy = abs(y1 - y2)
-            
-            is_h_wrap = (abs(dx - width) < tolerance) and (dy < tolerance)
-            is_v_wrap = (abs(dy - height) < tolerance) and (dx < tolerance)
-            is_c_wrap = (abs(dx - width) < tolerance) and (abs(dy - height) < tolerance)
-            
-            if is_h_wrap or is_v_wrap or is_c_wrap:
-                merge_logic.add_edge(u_id, v_id)
+    # Close out the very last segment's true color
+    indices.append(N - 1)
+    types.append(1) # (N-1)-true
 
-    # 2. Create Mapping (Logic for "1+3" labels)
-    mapping = {}
-    new_node_positions = {}
-    
-    for component in nx.connected_components(merge_logic):
-        sorted_ids = sorted(list(component))
-        
-        # KEY CHANGE: Create label "1+7"
-        new_id = "+".join(map(str, sorted_ids))
-        
-        for old_id in sorted_ids:
-            mapping[old_id] = new_id
-            
-        # Use position of the first node (usually Left/Bottom) for plot
-        first_node = sorted_ids[0]
-        new_node_positions[new_id] = original_graph.nodes[first_node]['pos']
+    # Convert to numpy arrays for fast indexing
+    indices = np.array(indices)
+    types = np.array(types)
 
-    # 3. Build MultiGraph
-    new_graph = nx.MultiGraph()
-    for new_id, pos in new_node_positions.items():
-        new_graph.add_node(new_id, pos=pos)
-        
-    for u, v, data in original_graph.edges(data=True):
-        new_u = mapping[u]
-        new_v = mapping[v]
-        edge_name = f"{u}-{v}"
-        new_graph.add_edge(new_u, new_v, key=edge_name, original_u=u, original_v=v, **data)
-        
-    return new_graph, mapping
+    # 3. Construct the interleaved arrays using the sequence
+    ordered_segments = segments[indices]
+    
+    ordered_linewidths = np.zeros(len(indices))
+    ordered_linewidths[types == 0] = 3.5  # Background thickness
+    ordered_linewidths[types == 1] = 1.5  # Foreground thickness
+    
+    ordered_colors = np.zeros((len(indices), 4))
+    ordered_colors[types == 0] = [0, 0, 0, 1]  # Black for bg
+    # Map the foreground colors according to their original segment index
+    ordered_colors[types == 1] = mapped_colors[indices[types == 1]]
 
-def plot_comparison(G_flat, G_merged, width, height):
-    """
-    Plots Flat vs Merged with Nice Multigraph Curves
-    """
-    fig, axes = plt.subplots(1, 2, figsize=(15, 7))
+    fig, ax = plt.subplots(figsize=(3.5, 2.8))
 
-    edge_colors = {}
-    edges_flat = list(G_flat.edges())
-    colormap = cm.get_cmap('tab20') # High contrast palette
-    
-    for i, (u, v) in enumerate(edges_flat):
-        key = tuple(sorted((u, v)))
-        edge_colors[key] = colormap(i / len(edges_flat))
-    
-    # --- PLOT 1: FLAT ---
-    ax1 = axes[0]
-    pos_flat = nx.get_node_attributes(G_flat, 'pos')
-    
-    # Boundary
-    ax1.plot([0, width, width, 0, 0], [0, 0, height, height, 0], 'k--', alpha=0.3)
-    
-    # Nodes/Edges
-    nx.draw_networkx_edges(G_flat, pos_flat, ax=ax1, edge_color=[edge_colors[tuple(sorted((u, v)))] for u, v in G_flat.edges()], width=6)
-    nx.draw_networkx_nodes(G_flat, pos_flat, ax=ax1, node_size=300, node_color='white', edgecolors='black')
-    nx.draw_networkx_labels(G_flat, pos_flat, ax=ax1)
-    nx.draw_networkx_edge_labels(G_flat, pos_flat, ax=ax1, edge_labels={(u, v): f"{u}-{v}" for u, v in G_flat.edges()}, font_color='gray', font_size=7)
-    
-    # Highlight Boundary Nodes
-    # l_nodes = [n for n, p in pos_flat.items() if p[0] < 0.1]
-    # r_nodes = [n for n, p in pos_flat.items() if p[0] > width - 0.1]
-    # nx.draw_networkx_nodes(G_flat, pos_flat, nodelist=l_nodes, ax=ax1, node_color='#ffcccc', edgecolors='red') # Red tint
-    # nx.draw_networkx_nodes(G_flat, pos_flat, nodelist=r_nodes, ax=ax1, node_color='#ccccff', edgecolors='blue') # Blue tint
-    
-    ax1.set_title("(a) Flat Unit Cell", fontsize=14)
-    ax1.axis('equal')
+    # 4. Create the LineCollection with your sequenced arrays
+    lc = LineCollection(
+        ordered_segments,
+        colors=ordered_colors,
+        linewidths=ordered_linewidths,
+        capstyle='round',
+        joinstyle='round'
+    )
 
-    # --- PLOT 2: MERGED MULTIGRAPH ---
-    ax2 = axes[1]
-    pos_merged = nx.get_node_attributes(G_merged, 'pos')
-    
-    # Draw "Seam" (Left Line)
-    # ax2.plot([0, 0], [0, height], 'k-', lw=5, alpha=0.1, label='Merged Seam')
-    ax2.plot([0, width, width, 0, 0], [0, 0, height, height, 0], 'k--', alpha=0.3)
-    
-    # Draw Edges with Curvature logic
-    # We group edges by (u,v) pair to calculate curvature offsets
-    edge_groups = {}
-    for u, v, key in G_merged.edges(keys=True):
-        pair = tuple(sorted((u, v)))
-        if pair not in edge_groups: edge_groups[pair] = []
-        edge_groups[pair].append((u, v, key))
-        
-    for pair, edges in edge_groups.items():
-        count = len(edges)
-        for i, (u, v, key) in enumerate(edges):
-            # Calculate curvature (rad)
-            # If 1 edge: rad=0 (straight)
-            # If multiple: spread rads like 0.1, -0.1, 0.2, -0.2
-            if count == 1:
-                rad = 0
-            else:
-                # Logic to fan out edges
-                # i=0 -> 0.15, i=1 -> -0.15, i=2 -> 0.30, etc
-                sign = 1 if i % 2 == 0 else -1
-                step = (i // 2) + 1
-                rad = 0.15 * step * sign
+    ax.add_collection(lc)
 
-            original_u = G_merged.edges[u, v, key]['original_u']
-            original_v = G_merged.edges[u, v, key]['original_v']
-            
-            # Draw single edge
-            nx.draw_networkx_edges(G_merged, pos_merged, ax=ax2, edgelist=[(u, v)], 
-                                   connectionstyle=f'arc3, rad={rad}', 
-                                   edge_color=edge_colors[tuple(sorted((original_u, original_v)))], width=6, 
-                                   arrowstyle='-', label=f"{original_u}-{original_v}")
-            nx.draw_networkx_edge_labels(G_merged, pos_merged, connectionstyle=f'arc3, rad={rad}', ax=ax2, edge_labels={(u, v): f"{original_u}-{original_v}"}, font_color='gray', font_size=7)
+    ax.set_xlim(min(x) - 0.5, max(x) + 0.5)
+    ax.set_ylim(min(y) - 0.5, max(y) + 0.5)
+    ax.set_aspect('equal')
+    ax.set_xlabel(r'X Position (mm)')
+    ax.set_ylabel(r'Y Position (mm)')
+    ax.grid(True, linestyle=':', alpha=0.5)
 
-    # Draw Nodes (Merged ones highlighted)
-    merged_nodes = [n for n in G_merged.nodes() if "+" in str(n)]
-    normal_nodes = [n for n in G_merged.nodes() if "+" not in str(n)]
+    # Set zorder to ensure markers draw on top of the thick lines
+    ax.plot(x[0], y[0], 'ko', markersize=4, label='Start', zorder=5)
+    ax.plot(x[-1], y[-1], 'ks', markersize=4, label='End', zorder=5)
     
-    nx.draw_networkx_nodes(G_merged, pos_merged, nodelist=normal_nodes, ax=ax2, node_size=300, node_color='white', edgecolors='black')
-    nx.draw_networkx_nodes(G_merged, pos_merged, nodelist=merged_nodes, ax=ax2, node_size=600, node_color='#e6ccff', edgecolors='purple')
-    
-    # Labels (smaller font for merged to fit "1+3")
-    nx.draw_networkx_labels(G_merged, pos_merged, ax=ax2, font_size=8)
-    
-    ax2.set_title("(b) Periodic Multigraph (Merged)", fontsize=14)
-    ax2.axis('equal')
-    
-    plt.tight_layout()
-    plt.show()
+    # Move the legend outside and above the plot (centered, 2 columns)
+    ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.02), ncol=2, frameon=False)
 
-# ==========================================
-# 3. RUN
-# ==========================================
+    # Rebuild the colorbar
+    sm = cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label(r'Print Sequence $\rightarrow$')
+
+    plt.tight_layout(pad=0.5)
+    
+    pdf_path = f"{output_name}.pdf"
+    plt.savefig(pdf_path, format='pdf', bbox_inches='tight', dpi=300)
+    print(f"Extraction complete! Saved figure to {pdf_path}")
+
 if __name__ == "__main__":
-    data = snake_unit_cell
-    
-    periodic_G, mapping = create_periodic_multigraph(data.graph, data.W, data.H)
-    plot_comparison(data.graph, periodic_G, data.W, data.H)
+    if len(sys.argv) < 2:
+        # Fallback if the user runs it without an argument
+        filepath = input("Enter the path to your G-code file: ").strip()
+        # Remove quotes if dragged and dropped into terminal
+        filepath = filepath.strip("\"'") 
+    else:
+        filepath = sys.argv[1]
+        
+    if not os.path.exists(filepath):
+        print(f"Error: File '{filepath}' not found.")
+        sys.exit(1)
+        
+    print(f"Parsing first layer from {os.path.basename(filepath)}...")
+    try:
+        x, y = extract_first_layer(filepath)
+        print(f"Found {len(x)} coordinates in the first layer. Generating plot...")
+        
+        # Use the original filename to name the output images
+        base_name = os.path.splitext(os.path.basename(filepath))[0]
+        plot_toolpath(x, y, output_name=base_name + "_first_layer")
+        
+    except Exception as e:
+        print(f"Failed: {e}")

@@ -1,0 +1,412 @@
+[
+  {
+    "loop_id": "L1",
+    "cycle_mode": "simple",
+    "periodic_edges": [
+      [
+        "0",
+        "1_4",
+        "0-1"
+      ],
+      [
+        "1_4",
+        "3_5",
+        "3-4"
+      ],
+      [
+        "3_5",
+        "2_6",
+        "5-6"
+      ],
+      [
+        "2_6",
+        "0",
+        "0-2"
+      ]
+    ],
+    "physical_edges": [
+      [
+        0,
+        1
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        2,
+        0
+      ]
+    ],
+    "winding": [
+      0,
+      1
+    ],
+    "edge_signature": [
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        5,
+        6
+      ]
+    ],
+    "node_sequence": [
+      0,
+      1,
+      4,
+      3,
+      5,
+      6,
+      2,
+      0
+    ],
+    "path_text": "0 -> 1 -> 4 -> 3 -> 5 -> 6 -> 2 -> 0",
+    "edge_count": 4,
+    "closes_periodically": true
+  },
+  {
+    "loop_id": "L2",
+    "cycle_mode": "simple",
+    "periodic_edges": [
+      [
+        "0",
+        "1_4",
+        "0-1"
+      ],
+      [
+        "1_4",
+        "3_5",
+        "3-4"
+      ],
+      [
+        "3_5",
+        "2_6",
+        "5-6"
+      ],
+      [
+        "2_6",
+        "0",
+        "0-6"
+      ]
+    ],
+    "physical_edges": [
+      [
+        0,
+        1
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        6,
+        0
+      ]
+    ],
+    "winding": [
+      -1,
+      1
+    ],
+    "edge_signature": [
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        5,
+        6
+      ]
+    ],
+    "node_sequence": [
+      0,
+      1,
+      4,
+      3,
+      5,
+      6,
+      0
+    ],
+    "path_text": "0 -> 1 -> 4 -> 3 -> 5 -> 6 -> 0",
+    "edge_count": 4,
+    "closes_periodically": true
+  },
+  {
+    "loop_id": "L3",
+    "cycle_mode": "simple",
+    "periodic_edges": [
+      [
+        "0",
+        "1_4",
+        "0-1"
+      ],
+      [
+        "1_4",
+        "3_5",
+        "4-5"
+      ],
+      [
+        "3_5",
+        "2_6",
+        "5-6"
+      ],
+      [
+        "2_6",
+        "0",
+        "0-2"
+      ]
+    ],
+    "physical_edges": [
+      [
+        0,
+        1
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        2,
+        0
+      ]
+    ],
+    "winding": [
+      1,
+      1
+    ],
+    "edge_signature": [
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        5,
+        6
+      ]
+    ],
+    "node_sequence": [
+      0,
+      1,
+      4,
+      5,
+      6,
+      2,
+      0
+    ],
+    "path_text": "0 -> 1 -> 4 -> 5 -> 6 -> 2 -> 0",
+    "edge_count": 4,
+    "closes_periodically": true
+  },
+  {
+    "loop_id": "L4",
+    "cycle_mode": "simple",
+    "periodic_edges": [
+      [
+        "0",
+        "1_4",
+        "0-1"
+      ],
+      [
+        "1_4",
+        "3_5",
+        "4-5"
+      ],
+      [
+        "3_5",
+        "2_6",
+        "5-6"
+      ],
+      [
+        "2_6",
+        "0",
+        "0-6"
+      ]
+    ],
+    "physical_edges": [
+      [
+        0,
+        1
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        6,
+        0
+      ]
+    ],
+    "winding": [
+      0,
+      1
+    ],
+    "edge_signature": [
+      [
+        0,
+        1
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        5,
+        6
+      ]
+    ],
+    "node_sequence": [
+      0,
+      1,
+      4,
+      5,
+      6,
+      0
+    ],
+    "path_text": "0 -> 1 -> 4 -> 5 -> 6 -> 0",
+    "edge_count": 4,
+    "closes_periodically": true
+  },
+  {
+    "loop_id": "L5",
+    "cycle_mode": "simple",
+    "periodic_edges": [
+      [
+        "0",
+        "2_6",
+        "0-2"
+      ],
+      [
+        "2_6",
+        "0",
+        "0-6"
+      ]
+    ],
+    "physical_edges": [
+      [
+        0,
+        2
+      ],
+      [
+        6,
+        0
+      ]
+    ],
+    "winding": [
+      -1,
+      0
+    ],
+    "edge_signature": [
+      [
+        0,
+        2
+      ],
+      [
+        0,
+        6
+      ]
+    ],
+    "node_sequence": [
+      0,
+      2,
+      6,
+      0
+    ],
+    "path_text": "0 -> 2 -> 6 -> 0",
+    "edge_count": 2,
+    "closes_periodically": true
+  },
+  {
+    "loop_id": "L6",
+    "cycle_mode": "simple",
+    "periodic_edges": [
+      [
+        "1_4",
+        "3_5",
+        "3-4"
+      ],
+      [
+        "3_5",
+        "1_4",
+        "4-5"
+      ]
+    ],
+    "physical_edges": [
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        4
+      ]
+    ],
+    "winding": [
+      -1,
+      0
+    ],
+    "edge_signature": [
+      [
+        3,
+        4
+      ],
+      [
+        4,
+        5
+      ]
+    ],
+    "node_sequence": [
+      4,
+      3,
+      5,
+      4
+    ],
+    "path_text": "4 -> 3 -> 5 -> 4",
+    "edge_count": 2,
+    "closes_periodically": true
+  }
+]

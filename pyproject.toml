@@ -11,5 +11,6 @@ dependencies = [
     "fullcontrol>=0.1.2",
     "matplotlib>=3.10.9",
     "networkx>=3.6.1",
+    "python-dotenv>=1.1.1",
     "pytest>=9.0.3",
 ]

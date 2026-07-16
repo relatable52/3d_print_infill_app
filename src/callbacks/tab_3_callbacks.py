@@ -179,7 +179,7 @@ def register_tab_3_callbacks(app):
         if not stitched_results or not stitched_results.get("layers"):
             return no_update, "Run Tile and Stitch before connecting chains."
 
-        if connection_mode not in {"closest", "avoid_intersection"}:
+        if connection_mode not in {"closest", "avoid_intersection", "parallel"}:
             return no_update, "Select a valid connection mode."
 
         connected_results = {
@@ -200,7 +200,12 @@ def register_tab_3_callbacks(app):
                 "component_count_after_connection": connection_result.component_count_after,
             }
 
-        mode_label = "Closest Sweep" if connection_mode == "closest" else "Sweep Avoid Crossings"
+        mode_labels = {
+            "closest": "Closest Sweep",
+            "avoid_intersection": "Sweep Avoid Crossings",
+            "parallel": "Closest Sweep + Parallel Filter",
+        }
+        mode_label = mode_labels[connection_mode]
         status = f"Chain connection completed for all stitched layers using {mode_label} mode."
         return connected_results, status
 
