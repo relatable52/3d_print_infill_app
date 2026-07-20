@@ -6,10 +6,25 @@
       "L2"
     ],
     "validation": {
-      "is_valid": true,
-      "message": "Added L2 to the current layer.",
-      "conflicting_loop_ids": [],
-      "shared_edges": []
+      "is_valid": false,
+      "message": "Cannot add L5. It shares edges with L2.",
+      "conflicting_loop_ids": [
+        "L2"
+      ],
+      "shared_edges": [
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          4,
+          5
+        ]
+      ]
     },
     "layer_graph": {
       "directed": false,
@@ -173,6 +188,87 @@
         {
           "source": 4,
           "target": 5
+        },
+        {
+          "source": 5,
+          "target": 7
+        }
+      ]
+    }
+  },
+  {
+    "layer_id": "layer-3",
+    "name": "Layer 3",
+    "selected_loop_ids": [
+      "L1",
+      "L6"
+    ],
+    "validation": {
+      "is_valid": true,
+      "message": "Added L6 to the current layer.",
+      "conflicting_loop_ids": [],
+      "shared_edges": []
+    },
+    "layer_graph": {
+      "directed": false,
+      "multigraph": false,
+      "graph": {},
+      "nodes": [
+        {
+          "pos": [
+            0.675,
+            3.3255375506
+          ],
+          "id": 0
+        },
+        {
+          "pos": [
+            1.635,
+            1.6627687753
+          ],
+          "id": 1
+        },
+        {
+          "pos": [
+            0.675,
+            0
+          ],
+          "id": 2
+        },
+        {
+          "pos": [
+            2.9850000000000003,
+            1.6627687753
+          ],
+          "id": 5
+        },
+        {
+          "pos": [
+            3.9450000000000003,
+            0
+          ],
+          "id": 6
+        },
+        {
+          "pos": [
+            3.9450000000000003,
+            3.3255375506
+          ],
+          "id": 7
+        }
+      ],
+      "edges": [
+        {
+          "source": 0,
+          "target": 1
+        },
+        {
+          "source": 1,
+          "target": 2
+        },
+        {
+          "source": 5,
+          "target": 6
         },
         {
           "source": 5,
