@@ -35,9 +35,9 @@ def register_upload_callbacks(app):
         # 2. Parse the DXF and extract graph data
         graph_data, width, height, _parse_error = parse_dxf_to_graph(decoded)
 
-        print(graph_data)
+        # print(graph_data)
         graph_data_json = nx.node_link_data(graph_data) if graph_data else None
-        print(graph_data_json)
+        # print(graph_data_json)
 
         if graph_data_json is not None:
             status_message = f"Successfully parsed '{filename}'. Graph has {len(graph_data.nodes)} nodes and {len(graph_data.edges)} edges."

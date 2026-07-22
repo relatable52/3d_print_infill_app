@@ -1,7 +1,6 @@
 """Loop catalog view for Step 2."""
 
-from dash import html
-
+from dash import html, dcc
 
 TAB_2 = html.Div(
     [
@@ -51,6 +50,42 @@ TAB_2 = html.Div(
                                 html.Button("Remove Layer", id="btn-remove-layer", className="layer-action-btn is-danger"),
                             ],
                             className="layer-action-row",
+                        ),
+                        html.Div(
+                            [
+                                dcc.Input(
+                                    id="input-auto-layers",
+                                    type="number",
+                                    placeholder="Total Layers",
+                                    min=1,
+                                    step=1,
+                                    style={"width": "120px", "marginRight": "10px"}
+                                ),
+                                html.Button(
+                                    "Find Solutions", 
+                                    id="btn-auto-generate", 
+                                    className="layer-action-btn"
+                                ),
+                            ],
+                            style={"marginTop": "15px", "display": "flex", "alignItems": "center"}
+                        ),
+                        # NEW UI: Hidden by default, shows up when solutions are found
+                        html.Div(
+                            [
+                                dcc.Dropdown(
+                                    id="dropdown-auto-solutions",
+                                    placeholder="Select a valid sequence...",
+                                    style={"width": "250px", "marginRight": "10px"}
+                                ),
+                                html.Button(
+                                    "Apply Selected", 
+                                    id="btn-apply-solution", 
+                                    className="layer-action-btn is-success",
+                                    disabled=True
+                                ),
+                            ],
+                            id="auto-solution-selector-container",
+                            style={"marginTop": "10px", "marginBottom": "15px", "display": "none", "alignItems": "center"}
                         ),
                         html.Div(id="layer-manager-container", className="loop-list-container"),
                     ],

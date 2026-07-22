@@ -13,4 +13,5 @@ dependencies = [
     "networkx>=3.6.1",
     "python-dotenv>=1.1.1",
     "pytest>=9.0.3",
+    "dash-core-components>=2.0.0",
 ]

@@ -6,6 +6,7 @@ import networkx as nx
 from src.core.layer_builder import add_loop_to_layer, build_layer_graph, remove_loop_from_layer
 from src.core.loop_finder import discover_valid_loops, loop_record_to_dict
 from src.core.periodic_graph import create_periodic_multigraph
+from src.core.auto_selector import generate_printable_layers
 from src.core.plot_utils import (
     create_labeled_physical_graph_figure,
     create_loop_preview_figure,
@@ -546,3 +547,85 @@ def register_tab_2_callbacks(app):
             figure=create_stacked_layer_3d_figure(layers),
             config={"responsive": True, "displayModeBar": True, "displaylogo": False},
         )
+
+    @app.callback(
+        Output("store-auto-solutions", "data"),
+        Output("dropdown-auto-solutions", "options"),
+        Output("auto-solution-selector-container", "style"),
+        Output("layer-validation-message", "children", allow_duplicate=True),
+        Input("btn-auto-generate", "n_clicks"),
+        State("input-auto-layers", "value"),
+        State("store-graph-data", "data"),
+        State("store-graph-dimensions", "data"), # <-- NEW: Pull dimensions
+        State("store-loop-catalog", "data"),
+        prevent_initial_call=True,
+    )
+    def generate_and_list_solutions(n_clicks, num_layers, graph_data_json, dimensions, loop_catalog):
+        if not n_clicks or not num_layers or not graph_data_json or not dimensions or not loop_catalog:
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+            
+        # 1. Rebuild the physical graph
+        graph = nx.node_link_graph(graph_data_json)
+        width, height = dimensions
+        
+        # 2. Rebuild the PERIODIC graph to check against the real constraints
+        periodic_graph, _ = create_periodic_multigraph(graph, width, height)
+
+        print(periodic_graph)
+        
+        # 3. Pass BOTH to the solver (so it can map physical loops to periodic requirements)
+        solutions = generate_printable_layers(graph, periodic_graph, loop_catalog, int(num_layers))
+        
+        if not solutions:
+            return [], [], {"display": "none"}, f"Could not find any valid {num_layers}-layer combinations."
+            
+        options = [{"label": f"Solution {i+1}", "value": i} for i in range(len(solutions))]
+        visible_style = {"marginTop": "10px", "marginBottom": "15px", "display": "flex", "alignItems": "center"}
+        
+        return solutions, options, visible_style, f"Found {len(solutions)} valid sequences. Select one below."
+
+    # Enable the apply button only when a dropdown option is selected
+    @app.callback(
+        Output("btn-apply-solution", "disabled"),
+        Input("dropdown-auto-solutions", "value")
+    )
+    def toggle_apply_button(selected_index):
+        return selected_index is None
+
+    @app.callback(
+        Output("store-layers", "data", allow_duplicate=True),
+        Output("store-active-layer-id", "data", allow_duplicate=True),
+        Output("layer-validation-message", "children", allow_duplicate=True),
+        Input("btn-apply-solution", "n_clicks"),
+        State("dropdown-auto-solutions", "value"),
+        State("store-auto-solutions", "data"),
+        State("store-graph-data", "data"),
+        State("store-loop-catalog", "data"),
+        prevent_initial_call=True,
+    )
+    def apply_selected_solution(n_clicks, selected_index, solutions, graph_data_json, loop_catalog):
+        if not n_clicks or selected_index is None or not solutions:
+            return dash.no_update, dash.no_update, dash.no_update
+            
+        chosen_solution = solutions[selected_index]
+        graph = nx.node_link_graph(graph_data_json)
+        catalog_by_id = {loop["loop_id"]: loop for loop in loop_catalog}
+        
+        new_layers = []
+        for index, layer_loop_ids in enumerate(chosen_solution, start=1):
+            layer_record = _make_layer_record(index)
+            layer_record["selected_loop_ids"] = layer_loop_ids
+            
+            selected_loops = [catalog_by_id[l_id] for l_id in layer_loop_ids]
+            layer_graph = build_layer_graph(selected_loops, graph)
+            
+            layer_record["layer_graph"] = nx.node_link_data(layer_graph)
+            layer_record["validation"] = {
+                "is_valid": True,
+                "message": f"Applied Solution {selected_index + 1}.",
+                "conflicting_loop_ids": [],
+                "shared_edges": []
+            }
+            new_layers.append(layer_record)
+            
+        return new_layers, new_layers[0]["layer_id"], f"Successfully applied Solution {selected_index + 1}!"

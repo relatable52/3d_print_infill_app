@@ -32,7 +32,8 @@ def create_dcc_stores():
         dcc.Store(id='store-tiling-config'),  # Stores user-defined tiling parameters
         dcc.Store(id='store-stitched-layer-results'),  # Stores Step 3 tiled/stitched results for all layers
         dcc.Store(id='store-connected-layer-results'),  # Stores Step 3 chain-connection results for all layers
-        dcc.Store(id='store-generated-gcode')  # Stores generated G-code text for Step 4 download
+        dcc.Store(id='store-generated-gcode'),  # Stores generated G-code text for Step 4 download
+        dcc.Store(id="store-auto-solutions"), # Stores the auto-generated layer solutions for Step 2
     ])
 
 def create_processing_tabs():
