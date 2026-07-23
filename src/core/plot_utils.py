@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
@@ -76,6 +77,35 @@ def _build_ordered_node_walk(graph: nx.Graph, added_edges: list[tuple[str, str]]
         previous_node, current_node = current_node, next_node
 
     return path_nodes
+
+
+def _compute_porosity(layers, dimensions, nozzle_radius=0.2):
+    if not layers or not dimensions:
+        return None
+
+    width, height = dimensions
+
+    scale = 2/width
+
+    active_layers = [layer for layer in layers if layer.get("selected_loop_ids")]
+    if not active_layers:
+        return None
+
+    total_print_length = 0.0
+
+    for layer in active_layers:
+        layer_graph_data = layer.get("layer_graph")
+        if not layer_graph_data:
+            continue
+
+        layer_graph = nx.node_link_graph(layer_graph_data)
+        for start, end in layer_graph.edges():
+            x0, y0 = layer_graph.nodes[start]["pos"]
+            x1, y1 = layer_graph.nodes[end]["pos"]
+            total_print_length += math.hypot(x1 - x0, y1 - y0)
+
+    num_layers = len(active_layers)
+    return 1 - (2.0 * nozzle_radius * total_print_length * scale) / ((2 + 2 * nozzle_radius) * (height * scale + 2 * nozzle_radius) * num_layers)
 
 
 def _build_fullcontrol_path_mesh(
@@ -510,11 +540,18 @@ def create_layer_graph_preview_figure(
 
 def create_stacked_layer_3d_figure(
     layers: list[dict] | None,
+    dimensions: tuple[float, float],
     active_layer_id: str | None = None,
     z_spacing: float = 1.0,
 ) -> go.Figure:
     """Create a simple stacked 3D line preview for all non-empty layers."""
     fig = go.Figure()
+
+    porosity_text = ""
+    if layers:
+        porosity = _compute_porosity(layers, dimensions=dimensions, nozzle_radius=0.2)
+        if porosity is not None:
+            porosity_text = f"Estimated Porosity: {porosity:.3f}"
 
     if not layers:
         fig.update_layout(
@@ -599,7 +636,7 @@ def create_stacked_layer_3d_figure(
         return fig
 
     fig.update_layout(
-        title="Stacked Layer Preview",
+        title="Stacked Layer Preview " + porosity_text,
         margin=dict(l=0, r=0, b=0, t=40),
         scene=dict(
             xaxis=dict(title="X", backgroundcolor="#f8fafc"),

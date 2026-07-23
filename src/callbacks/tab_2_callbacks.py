@@ -550,13 +550,14 @@ def register_tab_2_callbacks(app):
     @app.callback(
         Output("stacked-layer-preview-container", "children"),
         Input("store-layers", "data"),
+        Input("store-graph-dimensions", "data"),
     )
-    def render_stacked_layer_preview(layers):
+    def render_stacked_layer_preview(layers, dimensions):
         if not layers:
             return html.Div("No layers available yet.", className="placeholder-text")
 
         return dcc.Graph(
-            figure=create_stacked_layer_3d_figure(layers),
+            figure=create_stacked_layer_3d_figure(layers, dimensions=dimensions or (0, 0)),
             config={
                 "responsive": True, "displayModeBar": True, "displaylogo": False,
                 "toImageButtonOptions": {
