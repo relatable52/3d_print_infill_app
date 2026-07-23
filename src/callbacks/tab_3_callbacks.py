@@ -253,7 +253,13 @@ def register_tab_3_callbacks(app):
                     cols,
                     title=f"{result['layer_name']} Connected Chains",
                 ),
-                config={"responsive": True, "displayModeBar": True, "displaylogo": False},
+                config={
+                    "responsive": True, "displayModeBar": True, "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "svg",
+                        "filename": f"{result['layer_name']}_connected_preview",
+                    }
+                },
             )
             summary = (
                 f"Displaying connected {result['layer_name']} on a {rows} x {cols} grid. "
@@ -275,7 +281,13 @@ def register_tab_3_callbacks(app):
                     cols,
                     title=f"{result['layer_name']} Components",
                 ),
-                config={"responsive": True, "displayModeBar": True, "displaylogo": False},
+                config={
+                    "responsive": True, "displayModeBar": True, "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "svg",
+                        "filename": f"{result['layer_name']}_stitched_preview",
+                    }
+                },
             )
             summary = (
                 f"Displaying stitched {result['layer_name']} on a {rows} x {cols} grid. "

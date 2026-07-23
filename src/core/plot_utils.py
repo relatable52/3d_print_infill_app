@@ -1,5 +1,7 @@
 import numpy as np
 import plotly.graph_objects as go
+import plotly.express as px
+import plotly.colors as pcolors
 import networkx as nx
 from fullcontrol.visualize.tube_mesh import FlowTubeMesh
 
@@ -21,6 +23,59 @@ def _interpolate_hex_color(start_hex: str, end_hex: str, t: float) -> str:
         for start_channel, end_channel in zip(start_rgb, end_rgb)
     )
     return _rgb_to_hex(interpolated)
+
+
+def _node_sort_key(graph: nx.Graph, node_id) -> tuple[float, float, str]:
+    """Matches the deterministic node sorting from the publication script."""
+    x, y = graph.nodes[node_id]["pos"]
+    return float(x), float(y), str(node_id)
+
+
+def _pick_path_start_node(graph: nx.Graph, added_edges: list[tuple[str, str]]) -> str:
+    """Finds the best endpoint to start the sequential print path."""
+    endpoints = [node_id for node_id, degree in graph.degree() if degree == 1]
+    if not endpoints:
+        return min(graph.nodes(), key=lambda node_id: _node_sort_key(graph, node_id))
+
+    if added_edges:
+        anchor_nodes = {str(added_edges[0][0]), str(added_edges[0][1])}
+        anchored_endpoints = [node_id for node_id in endpoints if str(node_id) in anchor_nodes]
+        if anchored_endpoints:
+            return min(anchored_endpoints, key=lambda node_id: _node_sort_key(graph, node_id))
+
+    return min(endpoints, key=lambda node_id: _node_sort_key(graph, node_id))
+
+
+def _build_ordered_node_walk(graph: nx.Graph, added_edges: list[tuple[str, str]]) -> list[str]:
+    """Generates a continuous sequence of nodes to render the gradient Plotly line."""
+    if graph.number_of_edges() == 0:
+        return []
+
+    start_node = _pick_path_start_node(graph, added_edges)
+    path_nodes = [start_node]
+    visited_edges = set()
+    current_node = start_node
+    previous_node = None
+
+    while True:
+        neighbors = sorted(graph.neighbors(current_node), key=lambda n: _node_sort_key(graph, n))
+        candidate_neighbors = [n for n in neighbors if n != previous_node]
+        
+        next_node = None
+        for neighbor in candidate_neighbors:
+            key = tuple(sorted((str(current_node), str(neighbor))))
+            if key not in visited_edges:
+                next_node = neighbor
+                break
+        
+        if next_node is None:
+            break
+
+        visited_edges.add(tuple(sorted((str(current_node), str(next_node)))))
+        path_nodes.append(next_node)
+        previous_node, current_node = current_node, next_node
+
+    return path_nodes
 
 
 def _build_fullcontrol_path_mesh(
@@ -565,7 +620,7 @@ def create_tiled_component_figure(
     cols: int,
     title: str = "Tiled Layer Components",
 ) -> go.Figure:
-    """Create a geometric 2D view with a different color per connected component."""
+    """Create a geometric 2D view with publication-style thick outlines and distinct colors."""
     if tiled_graph is None or len(tiled_graph.nodes) == 0:
         return go.Figure()
 
@@ -573,75 +628,55 @@ def create_tiled_component_figure(
     fig = go.Figure(data=[boundary_trace])
 
     components = list(nx.connected_components(tiled_graph))
-    component_count = max(len(components), 1)
+    
+    # Use Plotly's default distinct color sequence
+    colors = px.colors.qualitative.Plotly 
 
     for component_index, component_nodes in enumerate(components):
         component_graph = tiled_graph.subgraph(component_nodes)
-        t = 0.0 if component_count <= 1 else component_index / (component_count - 1)
-        color = _interpolate_hex_color("#2563eb", "#ea580c", t)
+        color = colors[component_index % len(colors)]
 
-        edge_x = []
-        edge_y = []
+        edge_x, edge_y = [], []
         for start, end in component_graph.edges():
             x0, y0 = tiled_graph.nodes[start]["pos"]
             x1, y1 = tiled_graph.nodes[end]["pos"]
             edge_x.extend([x0, x1, None])
             edge_y.extend([y0, y1, None])
 
-        node_x = []
-        node_y = []
-        node_text = []
+        node_x, node_y, node_text = [], [], []
         for node_id in component_graph.nodes():
             x, y = tiled_graph.nodes[node_id]["pos"]
             node_x.append(x)
             node_y.append(y)
             node_text.append(str(node_id))
 
-        fig.add_trace(
-            go.Scatter(
-                x=edge_x,
-                y=edge_y,
-                mode="lines",
-                line=dict(width=3, color=color),
-                hoverinfo="none",
-                name=f"Chain {component_index + 1}",
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=node_x,
-                y=node_y,
-                mode="markers",
-                text=node_text,
-                hoverinfo="text",
-                marker=dict(size=6, color=color, line=dict(width=1, color="#0f172a")),
-                showlegend=False,
-            )
-        )
+        # 1. Thick black outline underneath (matches matplotlib linewidth=3.8)
+        fig.add_trace(go.Scatter(
+            x=edge_x, y=edge_y, mode="lines", 
+            line=dict(width=7, color="black"), 
+            hoverinfo="none", showlegend=False
+        ))
+
+        # 2. Colored thinner line on top (matches matplotlib linewidth=2.0)
+        fig.add_trace(go.Scatter(
+            x=edge_x, y=edge_y, mode="lines", 
+            line=dict(width=3, color=color), 
+            name=f"Chain {component_index + 1}"
+        ))
+
+        # 3. Nodes with black edges (matches matplotlib edgecolors="black")
+        fig.add_trace(go.Scatter(
+            x=node_x, y=node_y, mode="markers", text=node_text, hoverinfo="text",
+            marker=dict(size=7, color=color, line=dict(width=1.5, color="black")),
+            showlegend=False,
+        ))
 
     fig.update_layout(
-        title=title,
-        showlegend=True,
-        hovermode="closest",
+        title=title, hovermode="closest",
         margin=dict(b=20, l=5, r=5, t=40),
-        xaxis=dict(
-            showgrid=True,
-            zeroline=False,
-            showticklabels=True,
-            scaleanchor="y",
-            scaleratio=1,
-            gridwidth=1,
-            gridcolor="lightgray",
-        ),
-        yaxis=dict(
-            showgrid=True,
-            zeroline=False,
-            showticklabels=True,
-            scaleanchor="x",
-            scaleratio=1,
-            gridwidth=1,
-            gridcolor="lightgray",
-        ),
+        xaxis=dict(showgrid=True, zeroline=False, scaleanchor="y", scaleratio=1, gridcolor="lightgray"),
+        yaxis=dict(showgrid=True, zeroline=False, scaleanchor="x", scaleratio=1, gridcolor="lightgray"),
+        plot_bgcolor="white",
         dragmode="zoom",
     )
     return fig
@@ -656,41 +691,130 @@ def create_connected_component_figure(
     cols: int,
     title: str = "Connected Layer Chains",
 ) -> go.Figure:
-    """Create a geometric 2D view of the connected result and highlight new edges."""
+    """Create a publication-style continuous sequence plot with overlapping Z-order crossings."""
     if connected_graph is None or len(connected_graph.nodes) == 0:
         return go.Figure()
 
-    fig = create_tiled_component_figure(
-        connected_graph,
-        width,
-        height,
-        rows,
-        cols,
-        title=title,
-    )
+    fig = go.Figure()
+    fig.add_trace(_create_boundary_trace(0.0, width * cols, 0.0, height * rows))
 
-    if not added_edges:
-        return fig
+    # 1. Draw Faint Background Graph
+    bg_x, bg_y = [], []
+    for u, v in connected_graph.edges():
+        x0, y0 = connected_graph.nodes[u]["pos"]
+        x1, y1 = connected_graph.nodes[v]["pos"]
+        bg_x.extend([x0, x1, None])
+        bg_y.extend([y0, y1, None])
 
-    edge_x = []
-    edge_y = []
-    for start, end in added_edges:
-        if start not in connected_graph.nodes or end not in connected_graph.nodes:
-            continue
-        x0, y0 = connected_graph.nodes[start]["pos"]
-        x1, y1 = connected_graph.nodes[end]["pos"]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
+    fig.add_trace(go.Scatter(
+        x=bg_x, y=bg_y, mode="lines+markers", 
+        line=dict(width=2, color="#d1d5db"), 
+        marker=dict(size=2, color="#d1d5db", symbol="circle"),
+        hoverinfo="none", showlegend=False, name="Base Graph"
+    ))
 
-    fig.add_trace(
-        go.Scatter(
-            x=edge_x,
-            y=edge_y,
-            mode="lines",
-            line=dict(width=5, color="#111827", dash="dash"),
-            hoverinfo="none",
-            name="Added Connections",
-        )
+    # 2. Build Ordered Walk
+    added_edges_list = list(added_edges) if added_edges else []
+    path_nodes = _build_ordered_node_walk(connected_graph, added_edges_list)
+
+    if path_nodes:
+        # FILTER: Extract physical segments and discard 0mm jumps
+        valid_segments = []
+        for i in range(len(path_nodes) - 1):
+            n1 = path_nodes[i]
+            n2 = path_nodes[i+1]
+            x0, y0 = connected_graph.nodes[n1]["pos"]
+            x1, y1 = connected_graph.nodes[n2]["pos"]
+            
+            # Keep only if distance is greater than a tiny tolerance
+            if abs(x0 - x1) > 1e-9 or abs(y0 - y1) > 1e-9:
+                valid_segments.append(((x0, y0), (x1, y1)))
+
+        num_segments = len(valid_segments)
+        
+        if num_segments > 0:
+            # Map colors purely to the valid physical segments
+            segment_colors = pcolors.sample_colorscale("plasma", np.linspace(0, 1, num_segments))
+
+            # 3. Interleaved Plotting for Perfect Z-Order Overlaps & Seamless Joints
+            for i, ((x0, y0), (x1, y1)) in enumerate(valid_segments):
+                x_seg = [x0, x1]
+                y_seg = [y0, y1]
+                
+                # DRAW OUTLINE: Plot the thick black background for the current segment (i)
+                fig.add_trace(go.Scatter(
+                    x=x_seg, y=y_seg, 
+                    mode="lines+markers", 
+                    line=dict(width=7, color="black"), 
+                    marker=dict(size=7, color="black", symbol="circle"),
+                    hoverinfo="none",
+                    showlegend=False
+                ))
+
+                # DRAW PREVIOUS FILL: Plot the color line for the PREVIOUS segment (i-1)
+                # This ensures the color fill covers the black start-cap of the current segment!
+                if i > 0:
+                    prev_x0, prev_y0 = valid_segments[i-1][0]
+                    prev_x1, prev_y1 = valid_segments[i-1][1]
+                    fig.add_trace(go.Scatter(
+                        x=[prev_x0, prev_x1], y=[prev_y0, prev_y1], 
+                        mode="lines+markers", 
+                        line=dict(width=3, color=segment_colors[i-1]), 
+                        marker=dict(size=3, color=segment_colors[i-1], symbol="circle"),
+                        hovertext=f"Print Step {i-1}",
+                        hoverinfo="text",
+                        showlegend=False
+                    ))
+
+            # DRAW FINAL FILL: Don't forget the color fill for the very last segment!
+            if num_segments > 0:
+                last_x0, last_y0 = valid_segments[-1][0]
+                last_x1, last_y1 = valid_segments[-1][1]
+                fig.add_trace(go.Scatter(
+                    x=[last_x0, last_x1], y=[last_y0, last_y1], 
+                    mode="lines+markers", 
+                    line=dict(width=3, color=segment_colors[-1]), 
+                    marker=dict(size=3, color=segment_colors[-1], symbol="circle"),
+                    hovertext=f"Print Step {num_segments - 1}",
+                    hoverinfo="text",
+                    showlegend=False
+                ))
+
+            # 4. Dummy Trace for Colorbar
+            fig.add_trace(go.Scatter(
+                x=[None], y=[None], mode="markers",
+                marker=dict(
+                    colorscale="plasma",
+                    cmin=0, cmax=num_segments,
+                    color=[0, num_segments],
+                    showscale=True,
+                    colorbar=dict(title="Print Sequence →", thickness=15, len=0.8, x=1.02)
+                ),
+                showlegend=False, hoverinfo="none"
+            ))
+
+        # 5. Add Start and End Markers using the very first and very last nodes
+        start_x, start_y = connected_graph.nodes[path_nodes[0]]["pos"]
+        end_x, end_y = connected_graph.nodes[path_nodes[-1]]["pos"]
+
+        fig.add_trace(go.Scatter(
+            x=[start_x], y=[start_y], mode="markers", 
+            marker=dict(size=10, color="black", symbol="circle"), 
+            name="Start"
+        ))
+        fig.add_trace(go.Scatter(
+            x=[end_x], y=[end_y], mode="markers", 
+            marker=dict(size=10, color="black", symbol="square"), 
+            name="End"
+        ))
+
+    fig.update_layout(
+        title=title, hovermode="closest",
+        margin=dict(b=20, l=5, r=100, t=40), 
+        xaxis=dict(showgrid=True, zeroline=False, scaleanchor="y", scaleratio=1, gridcolor="lightgray"),
+        yaxis=dict(showgrid=True, zeroline=False, scaleanchor="x", scaleratio=1, gridcolor="lightgray"),
+        plot_bgcolor="white",
+        dragmode="zoom",
     )
     return fig
 

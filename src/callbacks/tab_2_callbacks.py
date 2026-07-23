@@ -344,7 +344,13 @@ def register_tab_2_callbacks(app):
                 selected_loop["physical_edges"],
                 loop_id=selected_loop["loop_id"],
             ),
-            config={"responsive": True, "displayModeBar": True, "displaylogo": False},
+            config={
+                "responsive": True, "displayModeBar": True, "displaylogo": False,
+                "toImageButtonOptions": {
+                    "format": "svg",
+                    "filename": f"loop_{selected_loop['loop_id']}_preview",
+                }
+            },
         )
 
     @app.callback(
@@ -387,7 +393,13 @@ def register_tab_2_callbacks(app):
         graph = nx.node_link_graph(graph_data_json)
         graph_view = dcc.Graph(
             figure=create_labeled_physical_graph_figure(graph, title="Original Physical Graph"),
-            config={"responsive": True, "displayModeBar": True, "displaylogo": False},
+            config={
+                "responsive": True, "displayModeBar": True, "displaylogo": False,
+                "toImageButtonOptions": {
+                    "format": "svg",
+                    "filename": "original_physical_graph",
+                }
+            },
         )
 
         if not loop_catalog:
@@ -545,7 +557,13 @@ def register_tab_2_callbacks(app):
 
         return dcc.Graph(
             figure=create_stacked_layer_3d_figure(layers),
-            config={"responsive": True, "displayModeBar": True, "displaylogo": False},
+            config={
+                "responsive": True, "displayModeBar": True, "displaylogo": False,
+                "toImageButtonOptions": {
+                    "format": "svg",
+                    "filename": "stacked_layer_preview",
+                }
+            },
         )
 
     @app.callback(
@@ -571,7 +589,7 @@ def register_tab_2_callbacks(app):
         # 2. Rebuild the PERIODIC graph to check against the real constraints
         periodic_graph, _ = create_periodic_multigraph(graph, width, height)
 
-        print(periodic_graph)
+        # print(periodic_graph)
         
         # 3. Pass BOTH to the solver (so it can map physical loops to periodic requirements)
         solutions = generate_printable_layers(graph, periodic_graph, loop_catalog, int(num_layers))

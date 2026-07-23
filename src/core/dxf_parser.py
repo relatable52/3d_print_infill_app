@@ -81,7 +81,7 @@ def parse_dxf_to_graph(file_path_or_bytes, tolerance_decimals: int = 4)-> tuple[
                 
         elif entity.dxftype() == 'LWPOLYLINE':
             points = entity.get_points() # Returns (x, y, start_width, end_width, bulge)
-            print(points)
+            # print(points)
             node_ids = [get_or_create_node(p[0], p[1]) for p in points]
             
             # Connect sequential points
