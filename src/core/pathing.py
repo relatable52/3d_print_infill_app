@@ -245,17 +245,19 @@ def _candidate_intersects_existing_geometry(
     graph: nx.Graph,
     start_node: str,
     end_node: str,
-    added_edges: list[tuple[str, str]],
+    obstacle_edges: list[tuple[str, str]],
 ) -> bool:
     start_position = _node_position(graph, start_node)
     end_position = _node_position(graph, end_node)
 
-    for existing_start, existing_end in list(graph.edges()) + list(added_edges):
+    for existing_start, existing_end in obstacle_edges:
         if {start_node, end_node}.intersection({existing_start, existing_end}):
             continue
 
         existing_start_position = _node_position(graph, existing_start)
         existing_end_position = _node_position(graph, existing_end)
+        
+        # Check if the jump crosses a printed line
         if _segments_intersect(
             start_position,
             end_position,
@@ -325,6 +327,13 @@ def connect_chains_sweep(
     current_exit_port = _choose_exit_port(working_graph, start_component["ports"], start_port)
 
     added_edges: list[tuple[str, str]] = []
+    
+    # NEW: Track printed edges AND printed physical coordinates
+    printed_edges = list(working_graph.subgraph(start_component["nodes"]).edges())
+    
+    def _round_pos(pos): return (round(pos[0], 5), round(pos[1], 5))
+    printed_positions = set(_round_pos(_node_position(working_graph, n)) for n in start_component["nodes"])
+    
     component_count_before = nx.number_connected_components(working_graph)
 
     while True:
@@ -336,11 +345,18 @@ def connect_chains_sweep(
         for component in components:
             if component["connected"]:
                 continue
+                
+            # NEW: Does this candidate component touch any already-printed physical coordinate?
+            touches_printed = any(
+                _round_pos(_node_position(working_graph, n)) in printed_positions 
+                for n in component["nodes"]
+            )
 
             for entry_port in component["ports"]:
                 target_position = _node_position(working_graph, entry_port)
                 target_rank = rank_positions[entry_port]
                 target_boundary_labels = _boundary_labels(target_position, bounds)
+                
                 candidate_steps.append(
                     {
                         "component": component,
@@ -350,12 +366,15 @@ def connect_chains_sweep(
                         "parallel_score": _parallel_score(current_component["direction"], component["direction"]),
                         "same_boundary": 0 if current_boundary_labels.intersection(target_boundary_labels) else 1,
                         "top_left_key": _top_left_key(target_position),
+                        # 1. Does the jump cross a printed line?
                         "intersects": _candidate_intersects_existing_geometry(
                             working_graph,
                             current_exit_port,
                             entry_port,
-                            added_edges,
+                            obstacle_edges=added_edges + printed_edges,
                         ),
+                        # 2. Does the actual component touch printed plastic?
+                        "touches_hot_zone": touches_printed, 
                     }
                 )
 
@@ -363,11 +382,22 @@ def connect_chains_sweep(
             break
 
         if mode == "avoid_intersection":
-            clean_candidates = [candidate for candidate in candidate_steps if not candidate["intersects"]]
+            # Priority 1: PERFECT candidates (Jump doesn't intersect AND component doesn't touch hot plastic)
+            clean_candidates = [
+                c for c in candidate_steps 
+                if not c["intersects"] and not c["touches_hot_zone"]
+            ]
+            
+            # Priority 2: If we are out of perfect candidates, allow touching hot plastic, 
+            # but STILL try to avoid crossing travel lines if possible.
+            if not clean_candidates:
+                clean_candidates = [c for c in candidate_steps if not c["intersects"]]
+                
             candidates_to_sort = clean_candidates if clean_candidates else candidate_steps
         else:
             candidates_to_sort = candidate_steps
 
+        # Sort the surviving candidates by distance
         sorted_candidates = sorted(candidates_to_sort, key=_candidate_sort_key)
 
         if mode == "parallel":
@@ -384,8 +414,16 @@ def connect_chains_sweep(
 
         entry_port = selected_candidate["entry_port"]
         target_component = selected_candidate["component"]
+        
+        # Make the connection
         working_graph.add_edge(current_exit_port, entry_port)
         added_edges.append((current_exit_port, entry_port))
+        
+        # UPDATE TRACKERS: Add the newly printed component to our hot zones
+        printed_edges.extend(list(working_graph.subgraph(target_component["nodes"]).edges()))
+        for n in target_component["nodes"]:
+            printed_positions.add(_round_pos(_node_position(working_graph, n)))
+            
         target_component["connected"] = True
         current_component = target_component
         current_exit_port = _choose_exit_port(working_graph, target_component["ports"], entry_port)

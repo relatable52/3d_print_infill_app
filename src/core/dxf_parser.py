@@ -39,9 +39,9 @@ def parse_dxf_to_graph(file_path_or_bytes, tolerance_decimals: int = 4)-> tuple[
 
     msp = doc.modelspace()
     G = nx.Graph()
-    print(doc)
-    print(msp)
-    print(f"Modelspace entity count: {len(msp)}")
+    # print(doc)
+    # print(msp)
+    # print(f"Modelspace entity count: {len(msp)}")
 
     # 2. Setup tracking variables
     node_map = {} # Maps rounded (x, y) coordinates to integer Node IDs
